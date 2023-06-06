@@ -20,22 +20,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 
     startdb(1, 1);
 
-    m_areaTypeMap = DBManager::getDMConfig("低周减载区域类型");
-    m_roundFuncTypeMap = DBManager::getDMConfig("低周减载轮次功能类型");
-    m_roundTypeMap = DBManager::getRoundTypeMap();
-    m_areaIdNameMap = DBManager::getAreaIdNameMap();
-
-    m_lineList = DBManager::getLineList();
-    m_lineIdNameMap = getLineIdNameMap(m_lineList);
-    m_lineTreeJson = getLineJson(m_lineList);
-
-    m_breakList = DBManager::getBreakList();
-    m_breakIdNameMap = getBreakerIdNameMap(m_breakList);
-    m_breakJson = getBreakerJson(m_breakList);
-
-    m_loadTypeMap = DBManager::getDMConfig("低周减载负荷类型");
-    m_strapMap = DBManager::getDMConfig("低周减载投退计划类型");
-    m_staIdNameMap = DBManager::getStaIdNameMap();
+    m_pDbManager = DBManager::getInstance();
 
     connect(ui->m_listWidget, SIGNAL(itemClicked(QListWidgetItem *)), this, SLOT(onModuleItemClicked(QListWidgetItem *)));
 
@@ -75,9 +60,9 @@ void MainWindow::setupAreaTable()
     ui->m_tableViewArea->setColumnWidth(0, qMax(ui->m_tableViewArea->columnWidth(0), 10));
     ui->m_tableViewArea->setColumnWidth(1, qMax(ui->m_tableViewArea->columnWidth(1), 100));
     ui->m_tableViewArea->setColumnWidth(2, qMax(ui->m_tableViewArea->columnWidth(2), 100));
-    ui->m_tableViewArea->setItemDelegateForColumn(2, new DMDelegateInt(m_areaTypeMap, ui->m_tableViewArea));
+    ui->m_tableViewArea->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_areaTypeMap, ui->m_tableViewArea));
     ui->m_tableViewArea->setColumnWidth(3, qMax(ui->m_tableViewArea->columnWidth(3), 100));
-    ui->m_tableViewArea->setItemDelegateForColumn(3, new DMDelegateString(m_staIdNameMap, ui->m_tableViewArea));
+    ui->m_tableViewArea->setItemDelegateForColumn(3, new DMDelegateString(m_pDbManager->m_staIdNameMap, ui->m_tableViewArea));
     ui->m_tableViewArea->setColumnWidth(4, qMax(ui->m_tableViewArea->columnWidth(4), 150));
     m_BtnDelegateArea = new OperationDelegate(ui->m_tableViewArea);
     connect(ui->m_pushButtonAddArea, SIGNAL(clicked()), this, SLOT(onAddButtonAreaClicked()));
@@ -129,12 +114,12 @@ void MainWindow::setupRoundItemTable()
                                                               << QString::fromLocal8Bit("操作"));
 
     ui->m_roundItemTableView->setModel(m_roundItemModel);
-    ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_areaIdNameMap, ui->m_roundItemTableView));
-    ui->m_roundItemTableView->setItemDelegateForColumn(3, new DMDelegateInt(m_roundIdNameMap, ui->m_roundItemTableView));
-    ui->m_roundItemTableView->setItemDelegateForColumn(4, new DMDelegateString(m_lineIdNameMap, ui->m_roundItemTableView));
-    ui->m_roundItemTableView->setItemDelegateForColumn(5, new DMDelegateInt(m_loadTypeMap, ui->m_roundItemTableView));
-    ui->m_roundItemTableView->setItemDelegateForColumn(6, new DMDelegateInt(m_strapMap, ui->m_roundItemTableView));
-    ui->m_roundItemTableView->setItemDelegateForColumn(7, new DMDelegateString(m_breakIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_areaIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(4, new DMDelegateString(m_pDbManager->m_lineIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(5, new DMDelegateInt(m_pDbManager->m_loadTypeMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(6, new DMDelegateInt(m_pDbManager->m_strapMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(7, new DMDelegateString(m_pDbManager->m_breakIdNameMap, ui->m_roundItemTableView));
     m_BtnDelegateRoundItem = new OperationDelegate(ui->m_roundItemTableView);
     // connect(ui->m_pushButtonAddArea, SIGNAL(clicked()), this, SLOT(onAddButtonAreaClicked()));
     // connect(m_BtnDelegateArea, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonAreaClicked(QModelIndex)));
@@ -179,9 +164,6 @@ void MainWindow::onModuleItemClicked(QListWidgetItem *item)
     }
     if (index == 2)
     {
-        // 先读一下区域
-        m_areaIdNameMap = DBManager::getAreaIdNameMap();
-
         readRoundTable();
 
         for (int i = 0; i < 2; ++i)
@@ -193,7 +175,7 @@ void MainWindow::onModuleItemClicked(QListWidgetItem *item)
 
 void MainWindow::readAreaTable()
 {
-    QVector<AreaVo> areaList = DBManager::getAreaVoList();
+    QVector<AreaVo> areaList = m_pDbManager->getAreaVoList();
     populateAreaModel(areaList);
 }
 
@@ -224,7 +206,7 @@ void MainWindow::populateRoundModel(const QVector<RoundDto> &roundList)
 
 void MainWindow::readRoundTable()
 {
-    QVector<RoundDto> roundList = DBManager::getRoundList();
+    QVector<RoundDto> roundList = m_pDbManager->getRoundList();
     populateRoundModel(roundList);
 }
 
@@ -240,21 +222,23 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
 
         if (act == CommonFormDialog::TYPE_MODIFY)
         {
-            if (DBManager::updateAreaTable(area) != CS_SUCCEED)
+            if (m_pDbManager->updateAreaTable(area) != CS_SUCCEED)
             {
                 QMessageBox::warning(this, QString::fromLocal8Bit("修改失败"), QString::fromLocal8Bit("修改失败"));
                 return;
             }
             updateAreaModel(area, index.row());
+            m_pDbManager->reloadRoundIdNameMap();
         }
         else
         {
-            if (DBManager::insertAreaTable(area) != CS_SUCCEED)
+            if (m_pDbManager->insertAreaTable(area) != CS_SUCCEED)
             {
                 QMessageBox::warning(this, QString::fromLocal8Bit("新增失败"), QString::fromLocal8Bit("新增失败"));
                 return;
             }
             updateAreaModel(area);
+            m_pDbManager->reloadRoundIdNameMap();
         }
     }
 }
@@ -287,10 +271,10 @@ void MainWindow::onDeleteButtonAreaClicked(QModelIndex index)
     if (reply == QMessageBox::No)
         return;
 
-    if (DBManager::deleteTable(id, "xopensdb.dbo.低周减载区域参数表") != CS_SUCCEED)
+    if (m_pDbManager->deleteTable(id, "xopensdb.dbo.低周减载区域参数表") != CS_SUCCEED)
         return;
 
-    if (DBManager::deleteTable(id, "xopensdb.dbo.低周减载区域厂站关联表", "所属分区") != CS_SUCCEED)
+    if (m_pDbManager->deleteTable(id, "xopensdb.dbo.低周减载区域厂站关联表", "所属分区") != CS_SUCCEED)
         return;
 
     m_areaModel->removeRow(index.row());
@@ -315,7 +299,7 @@ void MainWindow::onAddButtonAreaClicked()
 {
     AreaVo area;
     memset(&area, 0, sizeof(area));
-    area.id = DBManager::getMaxIDFromDataBase("xopensdb.dbo.低周减载区域参数表");
+    area.id = m_pDbManager->getMaxIDFromDataBase("xopensdb.dbo.低周减载区域参数表");
     strncpy(area.name, "", sizeof(area.name) - 1);
     area.type = 2;
     strncpy(area.staId, "", sizeof(area.staId) - 1);
@@ -333,13 +317,13 @@ void MainWindow::onAddButtonAreaClicked()
  */
 void MainWindow::onRoundSelectionModelChanged(const QModelIndex &current)
 {
-    QString areaName = m_areaIdNameMap.value(m_roundModel->index(current.row(), 2).data().toInt(), QString::fromLocal8Bit("未知"));
+    QString areaName = m_pDbManager->m_areaIdNameMap.value(m_roundModel->index(current.row(), 2).data().toInt(), QString::fromLocal8Bit("未知"));
     ui->m_roundAreaLineEdit->setText(areaName);
 
-    QString funcType = m_roundFuncTypeMap.value(m_roundModel->index(current.row(), 3).data().toInt(), QString::fromLocal8Bit("未知"));
+    QString funcType = m_pDbManager->m_roundFuncTypeMap.value(m_roundModel->index(current.row(), 3).data().toInt(), QString::fromLocal8Bit("未知"));
     ui->m_roundFuncLineEdit->setText(funcType);
 
-    QString roundType = m_roundTypeMap.value(m_roundModel->index(current.row(), 4).data().toInt(), QString::fromLocal8Bit("未知"));
+    QString roundType = m_pDbManager->m_roundTypeMap.value(m_roundModel->index(current.row(), 4).data().toInt(), QString::fromLocal8Bit("未知"));
     ui->m_roundTypeLineEdit->setText(roundType);
     ui->m_roundValueLineEdit->setText(m_roundModel->index(current.row(), 5).data().toString());
     ui->m_roundTimeLineEdit->setText(m_roundModel->index(current.row(), 6).data().toString());
@@ -364,12 +348,12 @@ void MainWindow::populateAreaData(QList<QPair<QString, QVariant>> &data, const A
 
     ComboBoxData<int> typeData;
     typeData.currentValue = area.type;
-    typeData.options = m_areaTypeMap;
+    typeData.options = m_pDbManager->m_areaTypeMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("类型"), QVariant::fromValue(typeData)));
 
     ComboBoxData<QString> staData;
     staData.currentValue = area.staId;
-    staData.options = m_staIdNameMap;
+    staData.options = m_pDbManager->m_staIdNameMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联厂站"), QVariant::fromValue(staData)));
 }
 
@@ -417,15 +401,15 @@ void MainWindow::populateRoundData(QList<QPair<QString, QVariant>> &data, const 
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("名称"), QString::fromLocal8Bit(round.name)));
     ComboBoxData<int> comboBoxArea;
     comboBoxArea.currentValue = round.areaId;
-    comboBoxArea.options = m_areaIdNameMap;
+    comboBoxArea.options = m_pDbManager->m_areaIdNameMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("所属地区"), QVariant::fromValue(comboBoxArea)));
     ComboBoxData<int> comboBoxFunc;
     comboBoxFunc.currentValue = round.funcType;
-    comboBoxFunc.options = m_roundFuncTypeMap;
+    comboBoxFunc.options = m_pDbManager->m_roundFuncTypeMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("功能类型"), QVariant::fromValue(comboBoxFunc)));
     ComboBoxData<int> comboBoxType;
     comboBoxType.currentValue = round.roundType;
-    comboBoxType.options = m_roundTypeMap;
+    comboBoxType.options = m_pDbManager->m_roundTypeMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("轮次类型"), QVariant::fromValue(comboBoxType)));
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("频率/电压整定值"), round.fixValue));
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("动作延时整定值"), round.timeValue));
@@ -501,7 +485,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
 
         if (act == CommonFormDialog::TYPE_MODIFY)
         {
-            if (DBManager::updateRoundTable(round) != CS_SUCCEED)
+            if (m_pDbManager->updateRoundTable(round) != CS_SUCCEED)
             {
                 QMessageBox::warning(this, QString::fromLocal8Bit("修改失败"), QString::fromLocal8Bit("修改失败"));
                 return -1;
@@ -510,7 +494,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
         }
         else
         {
-            if (DBManager::insertRoundTable(round) != CS_SUCCEED)
+            if (m_pDbManager->insertRoundTable(round) != CS_SUCCEED)
             {
                 QMessageBox::warning(this, QString::fromLocal8Bit("新增失败"), QString::fromLocal8Bit("新增失败"));
                 return -1;
@@ -525,7 +509,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
 void MainWindow::onAddRoundActionTriggered()
 {
     RoundDto newRound;
-    newRound.id = DBManager::getMaxIDFromDataBase("xopensdb.dbo.低周减载轮次参数表");
+    newRound.id = m_pDbManager->getMaxIDFromDataBase("xopensdb.dbo.低周减载轮次参数表");
     newRound.areaId = 2;
     newRound.funcType = 1;
     newRound.roundType = 1;
@@ -584,7 +568,7 @@ void MainWindow::onDeleteRoundActionTriggered()
     if (reply == QMessageBox::No)
         return;
 
-    if (DBManager::deleteTable(id, "xopensdb.dbo.低周减载轮次参数表") != CS_SUCCEED)
+    if (m_pDbManager->deleteTable(id, "xopensdb.dbo.低周减载轮次参数表") != CS_SUCCEED)
         return;
 
     m_roundModel->removeRow(currentIndex.row());
@@ -592,10 +576,7 @@ void MainWindow::onDeleteRoundActionTriggered()
 
 void MainWindow::readRoundItemTable(int roundId)
 {
-    // 更新轮次
-    m_roundIdNameMap = DBManager::getRoundIdNameMap();
-
-    QVector<RoundItemDto> roundItemList = DBManager::getRoundItemList(roundId);
+    QVector<RoundItemDto> roundItemList = m_pDbManager->getRoundItemList(roundId);
     populateRoundItemModel(roundItemList);
 
     ui->m_roundItemTableView->resizeColumnsToContents();
@@ -622,7 +603,7 @@ void MainWindow::onAddRoundItemButtonClicked()
 {
     RoundItemDto item;
     memset(&item, 0, sizeof(item));
-    item.id = DBManager::getMaxIDFromDataBase("xopensdb.dbo.低周减载轮次项参数表");
+    item.id = m_pDbManager->getMaxIDFromDataBase("xopensdb.dbo.低周减载轮次项参数表");
     strncpy(item.name, "", sizeof(item.name) - 1);
     item.areaId = 0;
     item.roundId = 0;
@@ -643,34 +624,34 @@ void MainWindow::populateRoundItemData(QList<QPair<QString, QVariant>> &data, co
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("名称"), QString::fromLocal8Bit(item.name)));
     ComboBoxData<int> comboBoxArea;
     comboBoxArea.currentValue = item.areaId;
-    comboBoxArea.options = m_areaIdNameMap;
+    comboBoxArea.options = m_pDbManager->m_areaIdNameMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("所属分区"), QVariant::fromValue(comboBoxArea)));
 
     ComboBoxData<int> comboBoxRound;
     comboBoxRound.currentValue = item.roundId;
-    comboBoxRound.options = m_roundIdNameMap;
+    comboBoxRound.options = m_pDbManager->m_roundIdNameMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("所属轮次"), QVariant::fromValue(comboBoxRound)));
 
     JsonDialogData lineData;
     lineData.initialText = item.linkedLine;
     lineData.isMultiSelect = false;
-    lineData.jsonData = m_lineTreeJson;
+    lineData.jsonData = getLineJson(m_pDbManager->m_lineList);
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联馈线"), QVariant::fromValue(lineData)));
 
     ComboBoxData<int> comboBoxLoadType;
     comboBoxLoadType.currentValue = item.loadType;
-    comboBoxLoadType.options = m_loadTypeMap;
+    comboBoxLoadType.options = m_pDbManager->m_loadTypeMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("负荷类型"), QVariant::fromValue(comboBoxLoadType)));
 
     ComboBoxData<int> comboBoxStrapType;
     comboBoxStrapType.currentValue = item.strapPlan;
-    comboBoxStrapType.options = m_strapMap;
+    comboBoxStrapType.options = m_pDbManager->m_strapMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("投退计划"), QVariant::fromValue(comboBoxStrapType)));
 
     JsonDialogData breakData;
     breakData.initialText = item.linkedBreak;
     breakData.isMultiSelect = false;
-    breakData.jsonData = m_breakJson;
+    breakData.jsonData = getBreakerJson(m_pDbManager->m_breakerList);
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联开关"), QVariant::fromValue(breakData)));
 }
 
@@ -727,7 +708,7 @@ void MainWindow::showRoundItemDialog(const QList<QPair<QString, QVariant>> &data
 
         if (act == CommonFormDialog::TYPE_MODIFY)
         {
-            if (DBManager::updateRoundItemTable(item) != CS_SUCCEED)
+            if (m_pDbManager->updateRoundItemTable(item) != CS_SUCCEED)
             {
                 QMessageBox::warning(this, QString::fromLocal8Bit("修改失败"), QString::fromLocal8Bit("修改失败"));
                 return;
@@ -736,7 +717,7 @@ void MainWindow::showRoundItemDialog(const QList<QPair<QString, QVariant>> &data
         }
         else
         {
-            if (DBManager::insertRoundItemTable(item) != CS_SUCCEED)
+            if (m_pDbManager->insertRoundItemTable(item) != CS_SUCCEED)
             {
                 QMessageBox::warning(this, QString::fromLocal8Bit("新增失败"), QString::fromLocal8Bit("新增失败"));
                 return;
@@ -760,16 +741,6 @@ void MainWindow::updateRoundItemModel(const RoundItemDto &newRoundItem, int row)
     m_roundItemModel->setItem(row, 5, new QStandardItem(QString::number(newRoundItem.loadType)));
     m_roundItemModel->setItem(row, 6, new QStandardItem(QString::number(newRoundItem.strapPlan)));
     m_roundItemModel->setItem(row, 7, new QStandardItem(newRoundItem.linkedBreak));
-}
-
-QMap<QString, QString> MainWindow::getLineIdNameMap(const QVector<LineDto> &lines)
-{
-    QMap<QString, QString> lineIdNameMap;
-    for (const auto &line : lines)
-    {
-        lineIdNameMap.insert(QString::fromLocal8Bit(line.id), QString::fromLocal8Bit(line.name));
-    }
-    return lineIdNameMap;
 }
 
 dfJson::Value MainWindow::getLineJson(const QVector<LineDto> &lines)
@@ -814,16 +785,6 @@ dfJson::Value MainWindow::getLineJson(const QVector<LineDto> &lines)
     qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
 
     return root;
-}
-
-QMap<QString, QString> MainWindow::getBreakerIdNameMap(const QVector<BreakDto> &breakers)
-{
-    QMap<QString, QString> breakIdNameMap;
-    for (const auto &breaker : breakers)
-    {
-        breakIdNameMap.insert(QString::fromLocal8Bit(breaker.id), QString::fromLocal8Bit(breaker.name));
-    }
-    return breakIdNameMap;
 }
 
 dfJson::Value MainWindow::getBreakerJson(const QVector<BreakDto> &breakers)

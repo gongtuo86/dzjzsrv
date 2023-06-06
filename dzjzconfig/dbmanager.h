@@ -18,57 +18,76 @@ public:
     }
 
     template <typename T>
-    static int updateTable(const T &recond, const char *tableName);
+    int updateTable(const T &recond, const char *tableName);
 
     template <typename T>
-    static int insertTable(const T &record, const char *tableName);
+    int insertTable(const T &record, const char *tableName);
 
     template <typename T>
-    static QVector<T> getList(const QString &query);
+    QVector<T> getList(const QString &query);
 
     template <typename T>
-    static QMap<int, QString> getMapFromQuery(const QString &query);
+    QMap<int, QString> getMapFromQuery(const QString &query);
 
     template <typename T>
-    static QMap<QString, QString> getStrMapFromQuery(const QString &query);
+    QMap<QString, QString> getStrMapFromQuery(const QString &query);
 
-    static int deleteTable(int id, const char *tableName, const char *primaryKey = "编号");
-    static int getMaxIDFromDataBase(const char *tableName);
+    int deleteTable(int id, const char *tableName, const char *primaryKey = "编号");
+    int getMaxIDFromDataBase(const char *tableName);
 
-    static QMap<int, QString> getAreaIdNameMap();
-    static QMap<int, QString> getRoundIdNameMap();
-    static QMap<QString, QString> getStaIdNameMap();
-    static QVector<LineDto> getLineList();
+    QMap<int, QString> getRoundIdNameMap();
+    void reloadRoundIdNameMap();
+    QMap<QString, QString> getStaIdNameMap();
 
-    static QVector<BreakDto> getBreakList();
-    static QMap<QString, QString> getBreakIdNameMap();
+    QVector<BreakDto> getBreakList();
+    QMap<QString, QString> getBreakIdNameMap();
 
-    static QVector<AreaDto> getAreaList();
-    static QVector<AreaVo> getAreaVoList();
-    static int updateAreaTable(const AreaVo &area);
-    static int insertAreaTable(const AreaVo &area);
+    QVector<AreaDto> getAreaList();
+    QVector<AreaVo> getAreaVoList();
+    QMap<int, QString> getAreaIdNameMap();
+    int updateAreaTable(const AreaVo &area);
+    int insertAreaTable(const AreaVo &area);
 
-    static QVector<RoundDto> getRoundList();
-    static int insertRoundTable(const RoundDto &round);
-    static int updateRoundTable(const RoundDto &round);
+    QVector<RoundDto> getRoundList();
+    int insertRoundTable(const RoundDto &round);
+    int updateRoundTable(const RoundDto &round);
 
-    static QVector<RoundItemDto> getRoundItemList(int roundId);
-    static int updateRoundItemTable(const RoundItemDto &item);
-    static int insertRoundItemTable(const RoundItemDto &item);
+    QVector<RoundItemDto> getRoundItemList(int roundId);
+    int updateRoundItemTable(const RoundItemDto &item);
+    int insertRoundItemTable(const RoundItemDto &item);
 
-    static QMap<int, QString> getRoundTypeMap();
+    QMap<int, QString> getRoundTypeMap();
 
-    static QMap<int, QString> getDMConfig(const char *strType);
+    QMap<int, QString> getDMConfig(const char *strType);
+    QMap<QString, QString> getBreakerIdNameMap(const QVector<BreakDto> &breakers);
+
+    QVector<LineDto> getLineList();
+    QMap<QString, QString> getLineIdNameMap(const QVector<LineDto> &lines);
 
 private:
-    explicit DBManager(QObject *parent = 0) : QObject(parent) {}
-    ~DBManager() {}
+    explicit DBManager(QObject *parent = 0);
+    ~DBManager(){};
     DBManager(const DBManager &) = delete;
     DBManager &operator=(const DBManager &) = delete;
 
 public:
-    static QVector<BreakDto> m_breakList;           // 开关列表
-    static QMap<QString, QString> m_breakIdNameMap; // 开关
+    QMap<int, QString> m_areaTypeMap;        // 区域类型
+    QMap<int, QString> m_roundFuncTypeMap;   // 轮次功能类型
+    QMap<int, QString> m_roundTypeMap;       // 轮次类型
+    QMap<int, QString> m_loadTypeMap;        // 负荷类型
+    QMap<int, QString> m_strapMap;           // 投退
+
+    QMap<int, QString> m_areaIdNameMap;      // 区域
+
+    QMap<QString, QString> m_staIdNameMap;   // 变电站
+
+    QVector<LineDto> m_lineList;             // 线路列表
+    QMap<QString, QString> m_lineIdNameMap;  // 馈线
+
+    QVector<BreakDto> m_breakerList;         // 开关列表
+    QMap<QString, QString> m_breakIdNameMap; // 开关
+
+    QMap<int, QString> m_roundIdNameMap;     // 轮次map
 };
 
 template <typename T>

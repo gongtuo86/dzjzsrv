@@ -4,6 +4,24 @@
 
 #include "dto.h"
 
+DBManager::DBManager(QObject *parent) : QObject(parent)
+{
+    m_areaTypeMap = getDMConfig("低周减载区域类型");
+    m_roundFuncTypeMap = getDMConfig("低周减载轮次功能类型");
+    m_loadTypeMap = getDMConfig("低周减载负荷类型");
+    m_strapMap = getDMConfig("低周减载投退计划类型");
+    m_roundTypeMap = getRoundTypeMap();
+    m_staIdNameMap = getStaIdNameMap();
+
+    m_areaIdNameMap = getAreaIdNameMap();
+
+    m_lineList = getLineList();
+    m_lineIdNameMap = getLineIdNameMap(m_lineList);
+
+    m_breakerList = getBreakList();
+    m_breakIdNameMap = getBreakerIdNameMap(m_breakerList);
+}
+
 QVector<AreaDto> DBManager::getAreaList()
 {
     QString query = QString::fromLocal8Bit("select 编号,名称,类型 from xopensdb.dbo.低周减载区域参数表");
@@ -149,9 +167,9 @@ int DBManager::getMaxIDFromDataBase(const char *tableName)
 
 QMap<int, QString> DBManager::getAreaIdNameMap()
 {
-    QVector<AreaDto> areaList = DBManager::getAreaList();
+    QVector<AreaDto> areas = getAreaList();
     QMap<int, QString> areaMap;
-    for (const AreaDto &area : areaList)
+    for (const AreaDto &area : areas)
     {
         areaMap[area.id] = QString::fromLocal8Bit(area.name);
     }
@@ -172,7 +190,9 @@ QMap<int, QString> DBManager::getRoundIdNameMap()
 QMap<QString, QString> DBManager::getStaIdNameMap()
 {
     QString query = QString::fromLocal8Bit("select 编号,名称 from xopensdb.dbo.厂站参数表");
-    return getStrMapFromQuery<SubstationDto>(query);
+    QMap<QString, QString> map = getStrMapFromQuery<SubstationDto>(query);
+    map[""] = "";
+    return map;
 }
 
 QVector<LineDto> DBManager::getLineList()
@@ -207,4 +227,29 @@ int DBManager::updateRoundItemTable(const RoundItemDto &item)
 int DBManager::insertRoundItemTable(const RoundItemDto &item)
 {
     return insertTable(item, "xopensdb.dbo.低周减载轮次项参数表");
+}
+
+QMap<QString, QString> DBManager::getBreakerIdNameMap(const QVector<BreakDto> &breakers)
+{
+    QMap<QString, QString> breakIdNameMap;
+    for (const auto &breaker : breakers)
+    {
+        breakIdNameMap.insert(QString::fromLocal8Bit(breaker.id), QString::fromLocal8Bit(breaker.name));
+    }
+    return breakIdNameMap;
+}
+
+QMap<QString, QString> DBManager::getLineIdNameMap(const QVector<LineDto> &lines)
+{
+    QMap<QString, QString> lineIdNameMap;
+    for (const auto &line : lines)
+    {
+        lineIdNameMap.insert(QString::fromLocal8Bit(line.id), QString::fromLocal8Bit(line.name));
+    }
+    return lineIdNameMap;
+}
+
+void DBManager::reloadRoundIdNameMap()
+{
+    m_roundIdNameMap = getRoundIdNameMap();
 }

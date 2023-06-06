@@ -10,6 +10,7 @@
 
 class QListWidgetItem;
 class OperationDelegate;
+class DBManager;
 
 namespace Ui
 {
@@ -75,31 +76,14 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    DBManager *m_pDbManager;
 
     QStandardItemModel *m_areaModel;
     OperationDelegate *m_BtnDelegateArea;
 
     QStandardItemModel *m_roundModel;
 
-    QMap<int, QString> m_areaTypeMap;        // 区域类型
-    QMap<int, QString> m_roundFuncTypeMap;   // 轮次功能类型
-    QMap<int, QString> m_areaIdNameMap;      // 区域
-    QMap<int, QString> m_roundTypeMap;       // 轮次类型
-    QMap<int, QString> m_loadTypeMap;        // 负荷类型
-    QMap<int, QString> m_strapMap;           // 投退
-
-    QMap<QString, QString> m_staIdNameMap;   // 变电站
-
-    QMap<QString, QString> m_lineIdNameMap;  // 馈线
-    dfJson::Value m_lineTreeJson;            // 线路json
-    QVector<LineDto> m_lineList;             // 线路列表
-
-    QMap<QString, QString> m_breakIdNameMap; // 开关
-    dfJson::Value m_breakJson;               // 开关json
-    QVector<BreakDto> m_breakList;           // 开关列表
-
     QStandardItemModel *m_roundItemModel;
-    QMap<int, QString> m_roundIdNameMap;       // 轮次map
     OperationDelegate *m_BtnDelegateRoundItem; // 轮次项按钮代理
 
     QMenu *m_roundContextMenu;
