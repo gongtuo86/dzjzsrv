@@ -1,0 +1,49 @@
+---
+# The style option that is being opted for in this .clang-format file.
+# It is highly recommended to stick with Google style.
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+BasedOnStyle: Google
+
+# Indent width
+IndentWidth: 4
+
+# Use tabs or spaces for indentation.
+UseTab: Never
+
+# Spaces before an inline anonymous function within a function call.
+SpacesBeforeTrailingComments: 1
+
+# Column limit
+ColumnLimit: 0
+
+# Pointer alignment
+PointerAlignment: Left
+
+# Align after open bracket
+AlignAfterOpenBracket: Align
+
+# Align trailing comments
+AlignTrailingComments: true
+
+# Indent case labels
+IndentCaseLabels: true
+IndentCaseBlocks: false
+
+# Indent wrapped function names
+IndentWrappedFunctionNames: false
+
+# Braces
+BreakBeforeBraces: Custom
+BracesDefaultForBlock: true
+
+
+# Other
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+BreakBeforeBraces: Allman
+AccessModifierOffset: -4
+AllowShortLambdasOnASingleLine: Empty
+
