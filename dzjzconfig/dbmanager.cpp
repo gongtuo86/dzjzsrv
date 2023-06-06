@@ -12,6 +12,7 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
     m_strapMap = getDMConfig("低周减载投退计划类型");
     m_roundTypeMap = getRoundTypeMap();
     m_staIdNameMap = getStaIdNameMap();
+    m_roundIdNameMap = getRoundIdNameMap();
 
     m_areaIdNameMap = getAreaIdNameMap();
 

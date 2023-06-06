@@ -121,12 +121,10 @@ void MainWindow::setupRoundItemTable()
     ui->m_roundItemTableView->setItemDelegateForColumn(6, new DMDelegateInt(m_pDbManager->m_strapMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(7, new DMDelegateString(m_pDbManager->m_breakIdNameMap, ui->m_roundItemTableView));
     m_BtnDelegateRoundItem = new OperationDelegate(ui->m_roundItemTableView);
-    // connect(ui->m_pushButtonAddArea, SIGNAL(clicked()), this, SLOT(onAddButtonAreaClicked()));
-    // connect(m_BtnDelegateArea, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonAreaClicked(QModelIndex)));
-    // connect(m_BtnDelegateArea, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonAreaClicked(QModelIndex)));
-    // connect(m_BtnDelegateArea, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonAreaClicked(QModelIndex)));
+    connect(m_BtnDelegateRoundItem, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonRoundItemClicked(QModelIndex)));
+    connect(m_BtnDelegateRoundItem, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonRoundItemClicked(QModelIndex)));
+    connect(m_BtnDelegateRoundItem, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonRoundItemClicked(QModelIndex)));
     ui->m_roundItemTableView->setItemDelegateForColumn(8, m_BtnDelegateRoundItem);
-
     connect(ui->m_addRoundItemPushButton, SIGNAL(clicked()), this, SLOT(onAddRoundItemButtonClicked()));
 }
 
@@ -699,7 +697,8 @@ RoundItemDto MainWindow::extractRoundItemData(const QList<QPair<QString, QVarian
 void MainWindow::showRoundItemDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
 {
     CommonFormDialog dialog(data, act, this);
-    dialog.setWindowTitle(act == CommonFormDialog::TYPE_MODIFY ? QString::fromLocal8Bit("轮次项修改") : QString::fromLocal8Bit("轮次项新增"));
+    static const QStringList sTitleList = {"轮次项详情", "轮次项新增", "轮次项修改"};
+    dialog.setWindowTitle(sTitleList[act]);
     if (dialog.exec() == QDialog::Accepted)
     {
         QList<QPair<QString, QVariant>> updatedData = dialog.getData();
@@ -725,6 +724,7 @@ void MainWindow::showRoundItemDialog(const QList<QPair<QString, QVariant>> &data
             updateRoundItemModel(item);
         }
     }
+    ui->m_roundItemTableView->resizeColumnsToContents();
 }
 
 void MainWindow::updateRoundItemModel(const RoundItemDto &newRoundItem, int row)
@@ -782,7 +782,7 @@ dfJson::Value MainWindow::getLineJson(const QVector<LineDto> &lines)
         root.append(station);
     }
 
-    qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
 
     return root;
 }
@@ -826,7 +826,64 @@ dfJson::Value MainWindow::getBreakerJson(const QVector<BreakDto> &breakers)
         root.append(station);
     }
 
-    qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
 
     return root;
+}
+
+void MainWindow::onDetailButtonRoundItemClicked(QModelIndex index)
+{
+    RoundItemDto item;
+    memset(&item, 0, sizeof(item));
+    item.id = m_roundItemModel->index(index.row(), 0).data().toInt();
+    strncpy(item.name, m_roundItemModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(item.name) - 1);
+    item.areaId = m_roundItemModel->index(index.row(), 2).data().toInt();
+    item.roundId = m_roundItemModel->index(index.row(), 3).data().toInt();
+    strncpy(item.linkedLine, m_roundItemModel->index(index.row(), 4).data().toString().toLocal8Bit().data(), sizeof(item.linkedLine) - 1);
+    item.loadType = m_roundItemModel->index(index.row(), 5).data().toInt();
+    item.strapPlan = m_roundItemModel->index(index.row(), 6).data().toInt();
+    strncpy(item.linkedBreak, m_roundItemModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
+
+    QList<QPair<QString, QVariant>> data;
+    populateRoundItemData(data, item);
+
+    showRoundItemDialog(data, CommonFormDialog::TYPE_DETAIL, index);
+}
+
+void MainWindow::onDeleteButtonRoundItemClicked(QModelIndex index)
+{
+    int id = m_roundItemModel->index(index.row(), 0).data().toInt();
+
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this,
+                                  QString::fromLocal8Bit("删除"),
+                                  QString::fromLocal8Bit("确定删除编号为%1的轮次项吗?").arg(id),
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+        return;
+
+    if (m_pDbManager->deleteTable(id, "xopensdb.dbo.低周减载轮次项参数表") != CS_SUCCEED)
+        return;
+
+    m_roundItemModel->removeRow(index.row());
+}
+
+void MainWindow::onModifyButtonRoundItemClicked(QModelIndex index)
+{
+    RoundItemDto item;
+    memset(&item, 0, sizeof(item));
+    item.id = m_roundItemModel->index(index.row(), 0).data().toInt();
+    strncpy(item.name, m_roundItemModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(item.name) - 1);
+    item.areaId = m_roundItemModel->index(index.row(), 2).data().toInt();
+    item.roundId = m_roundItemModel->index(index.row(), 3).data().toInt();
+    strncpy(item.linkedLine, m_roundItemModel->index(index.row(), 4).data().toString().toLocal8Bit().data(), sizeof(item.linkedLine) - 1);
+    item.loadType = m_roundItemModel->index(index.row(), 5).data().toInt();
+    item.strapPlan = m_roundItemModel->index(index.row(), 6).data().toInt();
+    strncpy(item.linkedBreak, m_roundItemModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
+
+    QList<QPair<QString, QVariant>> data;
+    populateRoundItemData(data, item);
+
+    showRoundItemDialog(data, CommonFormDialog::TYPE_MODIFY, index);
 }

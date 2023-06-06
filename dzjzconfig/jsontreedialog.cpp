@@ -146,6 +146,8 @@ JsonTreeDialog::JsonTreeDialog(const dfJson::Value &data, bool isMultiSelect, QW
     connect(ui->m_searchPushButton, SIGNAL(clicked()), this, SLOT(search()));
     connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+
+    ui->m_treeView->expandAll();
 }
 
 /**
@@ -177,13 +179,13 @@ void JsonTreeDialog::onItemChanged(QStandardItem *item)
 {
     if (item->checkState() == Qt::Checked)
     {
-        // 如果项被选中，将其 id 添加到 selectedIds 中
-        selectedIds.append(item->data().toString());
+        // 如果项被选中，将其 id 添加到 m_selectedIds 中
+        m_selectedIds.append(item->data().toString());
     }
     else
     {
-        // 如果项被取消选中，将其 id 从 selectedIds 中移除
-        selectedIds.removeAll(item->data().toString());
+        // 如果项被取消选中，将其 id 从 m_selectedIds 中移除
+        m_selectedIds.removeAll(item->data().toString());
     }
 }
 
@@ -194,7 +196,7 @@ void JsonTreeDialog::onItemChanged(QStandardItem *item)
  */
 QStringList JsonTreeDialog::getSelectedIds() const
 {
-    return selectedIds;
+    return m_selectedIds;
 }
 
 /**
@@ -206,8 +208,8 @@ QStringList JsonTreeDialog::getSelectedIds() const
 void JsonTreeDialog::onSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
 {
     Q_UNUSED(deselected);
-    // 清空 selectedIds 列表
-    selectedIds.clear();
+    // 清空 m_selectedIds 列表
+    m_selectedIds.clear();
 
     // 获取当前选中的项
     QModelIndexList indices = selected.indexes();
@@ -219,8 +221,8 @@ void JsonTreeDialog::onSelectionChanged(const QItemSelection &selected, const QI
         QModelIndex sourceIndex = m_proxyModel->mapToSource(indices.first());
         QStandardItem *item = m_model->itemFromIndex(sourceIndex);
 
-        // 将选中项的id添加到 selectedIds 中
-        selectedIds.append(item->data().toString());
+        // 将选中项的id添加到 m_selectedIds 中
+        m_selectedIds.append(item->data().toString());
     }
 }
 
@@ -232,7 +234,7 @@ void JsonTreeDialog::onSelectionChanged(const QItemSelection &selected, const QI
 QStringList JsonTreeDialog::getSelectedNames() const
 {
     QStringList selectedNames;
-    for (const QString &id : selectedIds)
+    for (const QString &id : m_selectedIds)
     {
         QModelIndexList matches = m_model->match(
             m_model->index(0, 0),
@@ -250,6 +252,52 @@ QStringList JsonTreeDialog::getSelectedNames() const
         }
     }
 
-    DFLOG_DEBUG("selectedIds, selectedNames: %s", qPrintable(selectedIds.join(",")), qPrintable(selectedNames.join(",")));
+    DFLOG_DEBUG("m_selectedIds, selectedNames: %s", qPrintable(m_selectedIds.join(",")), qPrintable(selectedNames.join(",")));
     return selectedNames;
+}
+
+void JsonTreeDialog::setSelectedIds(const QStringList &ids)
+{
+    DFLOG_DEBUG("ids: %s", qPrintable(ids.join(",")));
+
+    m_selectedIds.clear();
+
+    if (ids.isEmpty())
+        return;
+
+    if (!m_isMultiSelect)
+    {
+        QModelIndexList matches = m_model->match(
+            m_model->index(0, 0),
+            Qt::UserRole + 1,
+            ids.first(),
+            1,
+            Qt::MatchRecursive);
+
+        DFLOG_DEBUG("matches.size(): %d", matches.size());
+        if (!matches.isEmpty())
+        {
+            QStandardItem *item = m_model->itemFromIndex(matches.first());
+            ui->m_treeView->setCurrentIndex(m_proxyModel->mapFromSource(item->index()));
+            m_selectedIds.append(ids.first());
+        }
+        return;
+    }
+
+    for (const QString &id : ids)
+    {
+        QModelIndexList matches = m_model->match(
+            m_model->index(0, 0),
+            Qt::UserRole + 1,
+            id,
+            -1,
+            Qt::MatchRecursive);
+
+        for (const QModelIndex &match : matches)
+        {
+            QStandardItem *item = m_model->itemFromIndex(match);
+            item->setCheckState(Qt::Checked);
+            m_selectedIds.append(id);
+        }
+    }
 }

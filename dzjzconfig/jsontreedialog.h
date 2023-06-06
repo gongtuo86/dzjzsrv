@@ -48,6 +48,7 @@ public:
     ~JsonTreeDialog();
     QStringList getSelectedIds() const;
     QStringList getSelectedNames() const;
+    void setSelectedIds(const QStringList &ids);
 
 private slots:
     void search();
@@ -58,7 +59,7 @@ private:
     Ui::JsonTreeDialog *ui;
     JsonTreeModel *m_model;
     SearchFilterProxyModel *m_proxyModel;
-    QStringList selectedIds;
+    QStringList m_selectedIds;
     bool m_isMultiSelect;
 };
 

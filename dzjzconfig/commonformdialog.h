@@ -34,17 +34,15 @@ class JsonDialogLineEdit : public QLineEdit
     Q_OBJECT
 
 public:
-    explicit JsonDialogLineEdit(QWidget *parent = NULL) : QLineEdit(parent) {}
+    explicit JsonDialogLineEdit(QWidget *parent = NULL);
     void setJsonData(const dfJson::Value &jsonData);
     void setMultiSelect(bool isMultiSelect);
 
     void mouseDoubleClickEvent(QMouseEvent *event) override;
-    QStringList getSelectedIds() const;
 
 private:
-    dfJson::Value jsonData;
-    bool isMultiSelect;
-    QStringList selectedIds;
+    dfJson::Value m_jsonData;
+    bool m_isMultiSelect;
 };
 
 class CommonFormDialog : public QDialog

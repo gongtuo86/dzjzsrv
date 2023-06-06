@@ -10,21 +10,27 @@
 
 #include "dflogger.h"
 #include "jsontreedialog.h"
+#include "dbmanager.h"
+
+JsonDialogLineEdit::JsonDialogLineEdit(QWidget *parent) : QLineEdit(parent)
+{
+    setReadOnly(true);
+}
 
 void JsonDialogLineEdit::setJsonData(const dfJson::Value &jsonData)
 {
-    this->jsonData = jsonData;
-    setReadOnly(true);
+    m_jsonData = jsonData;
 }
 
 void JsonDialogLineEdit::setMultiSelect(bool isMultiSelect)
 {
-    this->isMultiSelect = isMultiSelect;
+    m_isMultiSelect = isMultiSelect;
 }
 
 void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    JsonTreeDialog dialog(this->jsonData, this->isMultiSelect, this);
+    JsonTreeDialog dialog(m_jsonData, m_isMultiSelect, this);
+    dialog.setSelectedIds(text().split(","));
     if (dialog.exec() == QDialog::Accepted)
     {
         QStringList ids = dialog.getSelectedIds();
@@ -44,15 +50,10 @@ void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
             formattedItems.append(formattedItem);
         }
 
-        selectedIds = ids;
+        m_selectedIds = ids;
         setText(formattedItems.join(", "));
 #endif
     }
-}
-
-QStringList JsonDialogLineEdit::getSelectedIds() const
-{
-    return selectedIds;
 }
 
 CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, int type, QWidget *parent) : QDialog(parent)
@@ -209,7 +210,7 @@ QList<QPair<QString, QVariant>> CommonFormDialog::getData()
                 }
                 else if (JsonDialogLineEdit *jsonDialogLineEdit = qobject_cast<JsonDialogLineEdit *>(widget))
                 {
-                    pair.second = jsonDialogLineEdit->getSelectedIds();
+                    pair.second = jsonDialogLineEdit->text();
                 }
                 else if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget))
                 {
@@ -231,13 +232,9 @@ QList<QPair<QString, QVariant>> CommonFormDialog::getData()
  */
 void CommonFormDialog::onRelatedFeedLineTextChanged(const QString &text)
 {
-    // DFLOG_DEBUG("CommonFormDialog::onRelatedFeedLineTextChanged: %s", text.toLocal8Bit().data());
     QLineEdit *lineEdit = qobject_cast<QLineEdit *>(m_controlMap.value(QString::fromLocal8Bit("Ãû³Æ")));
     if (lineEdit)
     {
-        int idEndPos = text.indexOf(']');
-        QString name = text.mid(idEndPos + 1);
-
-        lineEdit->setText(name);
+        lineEdit->setText(DBManager::getInstance()->m_lineIdNameMap[text]);
     }
 }
