@@ -17,6 +17,6 @@ int main(int argc, char *argv[])
     QTextCodec::setCodecForTr(QTextCodec::codecForName("GB2312"));       //
 
     MainWindow w;
-    w.show();
+    w.showMaximized();
     return a.exec();
 }

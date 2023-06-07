@@ -71,6 +71,13 @@ public:
     QMap<int, QString> getRtuIdNameMap(const QVector<RtuDto> &rtus);
     QString getStaByRtuId(int rtu);
 
+    QVector<DeviceParaDto> getDeviceParaList(int id);
+    QVector<FixValueDto> getFixValueList(int rtuNo);
+    int updateDeviceParaTable(const DeviceParaDto &devicePara);
+    int insertDeviceParaTable(const DeviceParaDto &devicePara);
+
+    int deleteDeviceTable(int id);
+
 private:
     explicit DBManager(QObject *parent = 0);
     ~DBManager(){};

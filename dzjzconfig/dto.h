@@ -112,3 +112,24 @@ public:
     char staId[12];
     char staName[DESCRIBE_LEN];
 };
+
+class DeviceParaDto
+{
+public:
+    int id;
+    int no;
+    char strapId[256];
+    char fixValueId[DEF_CODE_LEN];
+    char timeValueId[DEF_CODE_LEN];
+    char alarmId[256];
+    char actionId[DEF_CODE_LEN];
+};
+
+class FixValueDto
+{
+public:
+    qint16 type;
+    qint16 groupNo;
+    qint16 no;
+    char name[160];
+};

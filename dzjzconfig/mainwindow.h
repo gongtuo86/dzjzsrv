@@ -60,9 +60,19 @@ private:
     DeviceDto extractDeviceData(const QList<QPair<QString, QVariant>> &updatedData);
     void updateDeviceModel(const DeviceDto &newDevice, int row = -1);
 
+    void setupDeviceParaTable();
+    void readDeviceParaTable(int deviceId);
+    void populateDeviceParaModel(const QVector<DeviceParaDto> &deviceList);
+    void populateDeviceParaData(QList<QPair<QString, QVariant>> &data, const DeviceParaDto &item);
+    void showDeviceParaDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index);
+    DeviceParaDto extractDeviceParaData(const QList<QPair<QString, QVariant>> &updatedData);
+    void updateDeviceParaModel(const DeviceParaDto &newDevice, int row = -1);
+
     dfJson::Value getRtuJson(const QVector<RtuDto> &rtus);
     dfJson::Value getLineJson(const QVector<LineDto> &lines);
     dfJson::Value getBreakerJson(const QVector<BreakDto> &lines);
+    dfJson::Value getDeviceJson(const QVector<DeviceDto> &devices);
+    dfJson::Value getFixValueJson(const QVector<FixValueDto> &fixValues);
 
 private slots:
     void onModuleItemClicked(QListWidgetItem *item);
@@ -82,11 +92,17 @@ private slots:
     void onDeleteButtonRoundItemClicked(QModelIndex index);
     void onModifyButtonRoundItemClicked(QModelIndex index);
     void onDetailButtonRoundItemClicked(QModelIndex index);
+    void onDeviceTableRowSelected(const QModelIndex &index);
 
     void onAddDeviceButtonClicked();
     void onDetailButtonDeviceClicked(QModelIndex index);
     void onModifyButtonDeviceClicked(QModelIndex index);
     void onDeleteButtonDeviceClicked(QModelIndex index);
+
+    void onAddDeviceParaButtonClicked();
+    void onDetailButtonDeviceParaClicked(QModelIndex index);
+    void onModifyButtonDeviceParaClicked(QModelIndex index);
+    void onDeleteButtonDeviceParaClicked(QModelIndex index);
 
 private:
     Ui::MainWindow *ui;

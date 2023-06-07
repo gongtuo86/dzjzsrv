@@ -303,3 +303,45 @@ QString DBManager::getStaByRtuId(int rtuId)
         }
     }
 }
+
+QVector<DeviceParaDto> DBManager::getDeviceParaList(int id)
+{
+    QString query = QString::fromLocal8Bit(
+                        "select 所属装置,轮次序号,压板ID,频率或电压定值ID,动作延时定值ID,告警信号ID,动作信号ID"
+                        " from xopensdb.低周减载装置参数设定表 where 所属装置=%1 order by 所属装置,轮次序号")
+                        .arg(id);
+    return getList<DeviceParaDto>(query);
+}
+
+QVector<FixValueDto> DBManager::getFixValueList(int rtuNo)
+{
+    QString query = QString::fromLocal8Bit(
+                        "select 装置类型,组号,序号,描述 from xopensdb.低周减载装置定值信息表 where RTU号=%1"
+                        " order by 装置类型,组号,序号")
+                        .arg(rtuNo);
+    return getList<FixValueDto>(query);
+}
+
+int DBManager::updateDeviceParaTable(const DeviceParaDto &devicePara)
+{
+    if (deleteTable(devicePara.id, "xopensdb.dbo.低周减载装置参数设定表", "所属装置") != CS_SUCCEED)
+        return CS_FAIL;
+
+    return insertTable(devicePara, "xopensdb.dbo.低周减载装置参数设定表");
+}
+
+int DBManager::insertDeviceParaTable(const DeviceParaDto &devicePara)
+{
+    return insertTable(devicePara, "xopensdb.dbo.低周减载装置参数设定表");
+}
+
+int DBManager::deleteDeviceTable(int id)
+{
+    if (deleteTable(id, "xopensdb.dbo.低周减载装置参数表") != CS_SUCCEED)
+        return CS_FAIL;
+
+    if (deleteTable(id, "xopensdb.dbo.低周减载装置参数设定表", "所属装置") != CS_SUCCEED)
+        return CS_FAIL;
+
+    return CS_SUCCEED;
+}
