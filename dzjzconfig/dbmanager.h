@@ -64,6 +64,13 @@ public:
     QVector<LineDto> getLineList();
     QMap<QString, QString> getLineIdNameMap(const QVector<LineDto> &lines);
 
+    QVector<DeviceDto> getDeviceList();
+    int updateDeviceTable(const DeviceDto &device);
+    int insertRoundItemTable(const DeviceDto &device);
+    QVector<RtuDto> getRtuList();
+    QMap<int, QString> getRtuIdNameMap(const QVector<RtuDto> &rtus);
+    QString getStaByRtuId(int rtu);
+
 private:
     explicit DBManager(QObject *parent = 0);
     ~DBManager(){};
@@ -76,6 +83,8 @@ public:
     QMap<int, QString> m_roundTypeMap;       // 轮次类型
     QMap<int, QString> m_loadTypeMap;        // 负荷类型
     QMap<int, QString> m_strapMap;           // 投退
+    QMap<int, QString> m_deviceTypeMap;      // 装置类型
+    QMap<int, QString> m_deviceFuncTypeMap;  // 装置功能类型
 
     QMap<int, QString> m_areaIdNameMap;      // 区域
 
@@ -88,6 +97,9 @@ public:
     QMap<QString, QString> m_breakIdNameMap; // 开关
 
     QMap<int, QString> m_roundIdNameMap;     // 轮次map
+
+    QVector<RtuDto> m_rtuList;               // Rtu
+    QMap<int, QString> m_rtuIdNameMap;       // RTU map
 };
 
 template <typename T>

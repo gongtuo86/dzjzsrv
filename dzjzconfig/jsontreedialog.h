@@ -48,6 +48,7 @@ public:
     ~JsonTreeDialog();
     QStringList getSelectedIds() const;
     QStringList getSelectedNames() const;
+
     void setSelectedIds(const QStringList &ids);
 
 private slots:

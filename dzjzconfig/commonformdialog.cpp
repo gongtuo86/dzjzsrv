@@ -30,7 +30,10 @@ void JsonDialogLineEdit::setMultiSelect(bool isMultiSelect)
 void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
 {
     JsonTreeDialog dialog(m_jsonData, m_isMultiSelect, this);
-    dialog.setSelectedIds(text().split(","));
+    if (!text().isEmpty())
+    {
+        dialog.setSelectedIds(text().split(","));
+    }
     if (dialog.exec() == QDialog::Accepted)
     {
         QStringList ids = dialog.getSelectedIds();
@@ -145,6 +148,10 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                         // 增加和名称的联动功能
                         connect(jsonDialogLineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(onRelatedFeedLineTextChanged(const QString &)));
                     }
+                    if (datum.first == QString::fromLocal8Bit("编号"))
+                    {
+                        connect(jsonDialogLineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(onRelatedRtuTextChanged(const QString &)));
+                    }
                 }
                 else
                 {
@@ -236,5 +243,28 @@ void CommonFormDialog::onRelatedFeedLineTextChanged(const QString &text)
     if (lineEdit)
     {
         lineEdit->setText(DBManager::getInstance()->m_lineIdNameMap[text]);
+    }
+}
+
+void CommonFormDialog::onRelatedRtuTextChanged(const QString &text)
+{
+    QLineEdit *lineEdit = qobject_cast<QLineEdit *>(m_controlMap.value(QString::fromLocal8Bit("名称")));
+    if (lineEdit)
+    {
+        lineEdit->setText(DBManager::getInstance()->m_rtuIdNameMap[text.toInt()]);
+    }
+
+    // 同时更新所属厂站内容
+    QComboBox *stationComboBox = qobject_cast<QComboBox *>(m_controlMap.value(QString::fromLocal8Bit("所属厂站")));
+    {
+        if (stationComboBox)
+        {
+            QString stationId = DBManager::getInstance()->getStaByRtuId(text.toInt());
+            int index = stationComboBox->findData(stationId);
+            if (index != -1)
+            {
+                stationComboBox->setCurrentIndex(index);
+            }
+        }
     }
 }

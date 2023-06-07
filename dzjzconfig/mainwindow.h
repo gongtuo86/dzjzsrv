@@ -52,10 +52,16 @@ private:
     void showRoundItemDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index);
     void updateRoundItemModel(const RoundItemDto &newRoundItem, int row = -1);
 
-    QMap<QString, QString> getLineIdNameMap(const QVector<LineDto> &lines);
-    dfJson::Value getLineJson(const QVector<LineDto> &lines);
+    void setupDeviceTable();
+    void readDeviceTable();
+    void populateDeviceModel(const QVector<DeviceDto> &deviceList);
+    void populateDeviceData(QList<QPair<QString, QVariant>> &data, const DeviceDto &item);
+    void showDeviceDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index);
+    DeviceDto extractDeviceData(const QList<QPair<QString, QVariant>> &updatedData);
+    void updateDeviceModel(const DeviceDto &newDevice, int row = -1);
 
-    QMap<QString, QString> getBreakerIdNameMap(const QVector<BreakDto> &breakers);
+    dfJson::Value getRtuJson(const QVector<RtuDto> &rtus);
+    dfJson::Value getLineJson(const QVector<LineDto> &lines);
     dfJson::Value getBreakerJson(const QVector<BreakDto> &lines);
 
 private slots:
@@ -77,6 +83,11 @@ private slots:
     void onModifyButtonRoundItemClicked(QModelIndex index);
     void onDetailButtonRoundItemClicked(QModelIndex index);
 
+    void onAddDeviceButtonClicked();
+    void onDetailButtonDeviceClicked(QModelIndex index);
+    void onModifyButtonDeviceClicked(QModelIndex index);
+    void onDeleteButtonDeviceClicked(QModelIndex index);
+
 private:
     Ui::MainWindow *ui;
     DBManager *m_pDbManager;
@@ -87,7 +98,13 @@ private:
     QStandardItemModel *m_roundModel;
 
     QStandardItemModel *m_roundItemModel;
-    OperationDelegate *m_BtnDelegateRoundItem; // 轮次项按钮代理
+    OperationDelegate *m_BtnDelegateRoundItem;
+
+    QStandardItemModel *m_deviceModel;
+    OperationDelegate *m_BtnDelegateDevice;
+
+    QStandardItemModel *m_deviceParaModel;
+    OperationDelegate *m_BtnDelegateDevicePara;
 
     QMenu *m_roundContextMenu;
     QAction *m_addRoundAction;

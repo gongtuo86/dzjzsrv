@@ -38,7 +38,6 @@ HEADERS  += mainwindow.h \
             commonformdialog.h \
             dto.h \
             dbmanager.h \
-            deviceDelegate.h \
             jsontreedialog.h \
             dzjzconfigutil.h
       
@@ -47,7 +46,6 @@ SOURCES += main.cpp\
         operationdelegate.cpp \
         commonformdialog.cpp \
         dbmanager.cpp \
-        deviceDelegate.cpp \
         jsontreedialog.cpp
 
 FORMS    += mainwindow.ui \

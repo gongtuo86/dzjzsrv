@@ -92,3 +92,23 @@ public:
     char staId[SUBSTATION_LEN];
     int areaId;
 };
+
+class DeviceDto
+{
+public:
+    int id;
+    char name[256];
+    quint8 type;
+    quint8 funcType;
+    int itemNums;
+    char staId[SUBSTATION_LEN];
+};
+
+class RtuDto
+{
+public:
+    qint16 id;
+    char name[40];
+    char staId[12];
+    char staName[DESCRIBE_LEN];
+};

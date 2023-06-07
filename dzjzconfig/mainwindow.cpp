@@ -5,7 +5,6 @@
 
 #include "commonformdialog.h"
 #include "dbmanager.h"
-#include "deviceDelegate.h"
 #include "dflogger.h"
 #include "dmDelegate.h"
 #include "dzjzconfigutil.h"
@@ -44,6 +43,7 @@ void MainWindow::setupModels()
     setupAreaTable();
     setupRoundTree();
     setupRoundItemTable();
+    setupDeviceTable();
 }
 
 void MainWindow::setupAreaTable()
@@ -128,6 +128,30 @@ void MainWindow::setupRoundItemTable()
     connect(ui->m_addRoundItemPushButton, SIGNAL(clicked()), this, SLOT(onAddRoundItemButtonClicked()));
 }
 
+void MainWindow::setupDeviceTable()
+{
+    // 区域模型
+    m_deviceModel = new QStandardItemModel(this);
+    m_deviceModel->setHorizontalHeaderLabels(QStringList() << QString::fromLocal8Bit("编号")
+                                                           << QString::fromLocal8Bit("名称")
+                                                           << QString::fromLocal8Bit("装置类型")
+                                                           << QString::fromLocal8Bit("功能类型")
+                                                           << QString::fromLocal8Bit("关联轮次项数")
+                                                           << QString::fromLocal8Bit("所属厂站")
+                                                           << QString::fromLocal8Bit("操作"));
+
+    ui->m_tableViewDevice->setModel(m_deviceModel);
+    ui->m_tableViewDevice->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_deviceTypeMap, ui->m_tableViewDevice));
+    ui->m_tableViewDevice->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_deviceFuncTypeMap, ui->m_tableViewDevice));
+    ui->m_tableViewDevice->setItemDelegateForColumn(5, new DMDelegateString(m_pDbManager->m_staIdNameMap, ui->m_tableViewDevice));
+    m_BtnDelegateDevice = new OperationDelegate(ui->m_tableViewDevice);
+    connect(m_BtnDelegateDevice, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonDeviceClicked(QModelIndex)));
+    connect(m_BtnDelegateDevice, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonDeviceClicked(QModelIndex)));
+    connect(m_BtnDelegateDevice, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonDeviceClicked(QModelIndex)));
+    ui->m_tableViewDevice->setItemDelegateForColumn(6, m_BtnDelegateDevice);
+    connect(ui->m_pushButtonDevice, SIGNAL(clicked()), this, SLOT(onAddDeviceButtonClicked()));
+}
+
 /**
  * @brief 加载区域数据
  *
@@ -160,11 +184,15 @@ void MainWindow::onModuleItemClicked(QListWidgetItem *item)
         readAreaTable();
         ui->m_tableViewArea->resizeColumnsToContents();
     }
-    if (index == 2)
+    else if (index == 1)
+    {
+        readDeviceTable();
+        ui->m_tableViewDevice->resizeColumnsToContents();
+    }
+    else if (index == 2)
     {
         readRoundTable();
-
-        for (int i = 0; i < 2; ++i)
+        for (int i = 0; i < 2; i++)
         {
             ui->m_roundTreeView->resizeColumnToContents(i);
         }
@@ -886,4 +914,247 @@ void MainWindow::onModifyButtonRoundItemClicked(QModelIndex index)
     populateRoundItemData(data, item);
 
     showRoundItemDialog(data, CommonFormDialog::TYPE_MODIFY, index);
+}
+
+void MainWindow::readDeviceTable()
+{
+    QVector<DeviceDto> deviceList = m_pDbManager->getDeviceList();
+    populateDeviceModel(deviceList);
+}
+
+void MainWindow::populateDeviceModel(const QVector<DeviceDto> &deviceList)
+{
+    int rowCount = deviceList.size();
+    m_deviceModel->setRowCount(rowCount);
+    for (int i = 0; i < rowCount; i++)
+    {
+        const DeviceDto &device = deviceList[i];
+        m_deviceModel->setItem(i, 0, new QStandardItem(QString::number(device.id)));
+        m_deviceModel->setItem(i, 1, new QStandardItem(QString::fromLocal8Bit(device.name)));
+        m_deviceModel->setItem(i, 2, new QStandardItem(QString::number(device.type)));
+        m_deviceModel->setItem(i, 3, new QStandardItem(QString::number(device.funcType)));
+        m_deviceModel->setItem(i, 4, new QStandardItem(QString::number(device.itemNums)));
+        m_deviceModel->setItem(i, 5, new QStandardItem(QString::fromLocal8Bit(device.staId)));
+    }
+}
+
+void MainWindow::onAddDeviceButtonClicked()
+{
+    DeviceDto device;
+    memset(&device, 0, sizeof(device));
+    device.id = 0;
+    strncpy(device.name, "", sizeof(device.name) - 1);
+    device.type = 1;
+    device.funcType = 3;
+    device.itemNums = 0;
+    strcpy(device.staId, "");
+
+    QList<QPair<QString, QVariant>> data;
+    populateDeviceData(data, device);
+
+    showDeviceDialog(data, CommonFormDialog::TYPE_ADD, QModelIndex());
+}
+
+void MainWindow::onDetailButtonDeviceClicked(QModelIndex index)
+{
+    DeviceDto device;
+    memset(&device, 0, sizeof(device));
+    device.id = m_deviceModel->index(index.row(), 0).data().toInt();
+    strncpy(device.name, m_deviceModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(device.name) - 1);
+    device.type = m_deviceModel->index(index.row(), 2).data().toInt();
+    device.funcType = m_deviceModel->index(index.row(), 3).data().toInt();
+    device.itemNums = m_deviceModel->index(index.row(), 4).data().toInt();
+    strncpy(device.staId, m_deviceModel->index(index.row(), 5).data().toString().toLocal8Bit().data(), sizeof(device.staId) - 1);
+
+    QList<QPair<QString, QVariant>> data;
+    populateDeviceData(data, device);
+
+    showDeviceDialog(data, CommonFormDialog::TYPE_DETAIL, QModelIndex());
+}
+
+void MainWindow::onModifyButtonDeviceClicked(QModelIndex index)
+{
+    DeviceDto device;
+    memset(&device, 0, sizeof(device));
+    device.id = m_deviceModel->index(index.row(), 0).data().toInt();
+    strncpy(device.name, m_deviceModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(device.name) - 1);
+    device.type = m_deviceModel->index(index.row(), 2).data().toInt();
+    device.funcType = m_deviceModel->index(index.row(), 3).data().toInt();
+    device.itemNums = m_deviceModel->index(index.row(), 4).data().toInt();
+    strncpy(device.staId, m_deviceModel->index(index.row(), 5).data().toString().toLocal8Bit().data(), sizeof(device.staId) - 1);
+
+    QList<QPair<QString, QVariant>> data;
+    populateDeviceData(data, device);
+
+    showDeviceDialog(data, CommonFormDialog::TYPE_MODIFY, QModelIndex());
+}
+
+void MainWindow::onDeleteButtonDeviceClicked(QModelIndex index)
+{
+    int id = m_deviceModel->index(index.row(), 0).data().toInt();
+
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this,
+                                  QString::fromLocal8Bit("删除"),
+                                  QString::fromLocal8Bit("确定删除编号为%1的装置吗?").arg(id),
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+        return;
+
+    if (m_pDbManager->deleteTable(id, "xopensdb.dbo.低周减载装置参数表") != CS_SUCCEED)
+        return;
+
+    m_deviceModel->removeRow(index.row());
+}
+
+void MainWindow::populateDeviceData(QList<QPair<QString, QVariant>> &data, const DeviceDto &device)
+{
+    JsonDialogData rtuData;
+    rtuData.initialText = QString::number(device.id);
+    rtuData.isMultiSelect = false;
+    rtuData.jsonData = getRtuJson(m_pDbManager->m_rtuList);
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("编号"), QVariant::fromValue(rtuData)));
+
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("名称"), QString::fromLocal8Bit(device.name)));
+
+    ComboBoxData<int> comboBoxType;
+    comboBoxType.currentValue = device.type;
+    comboBoxType.options = m_pDbManager->m_deviceTypeMap;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("装置类型"), QVariant::fromValue(comboBoxType)));
+
+    ComboBoxData<int> comboBoxFuncType;
+    comboBoxFuncType.currentValue = device.funcType;
+    comboBoxFuncType.options = m_pDbManager->m_deviceFuncTypeMap;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("功能类型"), QVariant::fromValue(comboBoxFuncType)));
+
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联轮次项数"), QString::number(device.itemNums)));
+
+    ComboBoxData<QString> staData;
+    staData.currentValue = device.staId;
+    staData.options = m_pDbManager->m_staIdNameMap;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("所属厂站"), QVariant::fromValue(staData)));
+}
+
+void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
+{
+    CommonFormDialog dialog(data, act, this);
+    static const QStringList sTitleList = {QString::fromLocal8Bit("装置详情"), QString::fromLocal8Bit("装置新增"), QString::fromLocal8Bit("装置修改")};
+    dialog.setWindowTitle(sTitleList[act]);
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        QList<QPair<QString, QVariant>> updatedData = dialog.getData();
+
+        DeviceDto device = extractDeviceData(updatedData);
+
+        if (act == CommonFormDialog::TYPE_MODIFY)
+        {
+            if (m_pDbManager->updateDeviceTable(device) != CS_SUCCEED)
+            {
+                QMessageBox::warning(this, QString::fromLocal8Bit("修改失败"), QString::fromLocal8Bit("修改失败"));
+                return;
+            }
+            updateDeviceModel(device, index.row());
+        }
+        else
+        {
+            if (m_pDbManager->insertRoundItemTable(device) != CS_SUCCEED)
+            {
+                QMessageBox::warning(this, QString::fromLocal8Bit("新增失败"), QString::fromLocal8Bit("新增失败"));
+                return;
+            }
+            updateDeviceModel(device);
+        }
+    }
+    ui->m_tableViewDevice->resizeColumnsToContents();
+}
+
+DeviceDto MainWindow::extractDeviceData(const QList<QPair<QString, QVariant>> &updatedData)
+{
+    DeviceDto newDevice;
+    for (const auto &pair : updatedData)
+    {
+        if (pair.first == QString::fromLocal8Bit("编号"))
+        {
+            newDevice.id = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("名称"))
+        {
+            strncpy(newDevice.name, pair.second.toString().toLocal8Bit().data(), sizeof(newDevice.name) - 1);
+        }
+        else if (pair.first == QString::fromLocal8Bit("装置类型"))
+        {
+            newDevice.type = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("功能类型"))
+        {
+            newDevice.funcType = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("关联轮次项数"))
+        {
+            newDevice.itemNums = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("所属厂站"))
+        {
+            strncpy(newDevice.staId, pair.second.toString().toLocal8Bit().data(), sizeof(newDevice.staId) - 1);
+        }
+    }
+    return newDevice;
+}
+
+void MainWindow::updateDeviceModel(const DeviceDto &newDevice, int row)
+{
+    if (row == -1)
+    {
+        row = m_deviceModel->rowCount();
+    }
+    m_deviceModel->setItem(row, 0, new QStandardItem(QString::number(newDevice.id)));
+    m_deviceModel->setItem(row, 1, new QStandardItem(QString::fromLocal8Bit(newDevice.name)));
+    m_deviceModel->setItem(row, 2, new QStandardItem(QString::number(newDevice.type)));
+    m_deviceModel->setItem(row, 3, new QStandardItem(QString::number(newDevice.funcType)));
+    m_deviceModel->setItem(row, 4, new QStandardItem(QString::number(newDevice.itemNums)));
+    m_deviceModel->setItem(row, 5, new QStandardItem(QString::fromLocal8Bit(newDevice.staId)));
+}
+
+dfJson::Value MainWindow::getRtuJson(const QVector<RtuDto> &rtus)
+{
+    QMap<QString, QVector<RtuDto>> stationMap;
+
+    // 将所有线路按变电站 ID 分类
+    for (const auto &rtu : rtus)
+    {
+        stationMap[QString::fromLocal8Bit(rtu.staId)].push_back(rtu);
+    }
+
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+
+    QMap<QString, QVector<RtuDto>>::iterator it;
+    for (it = stationMap.begin(); it != stationMap.end(); ++it)
+    {
+        // 变电站
+        dfJson::Value station(dfJson::objectValue);    // 创建一个空的Json对象
+        station["id"] = it.key().toLocal8Bit().data(); // 变电站 ID
+        station["name"] = it.value().first().staName;  // 变电站名称
+        station["type"] = "substation";                // 变电站类型
+
+        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+
+        // 线路
+        for (const auto &rtu : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue);                   // 创建一个空的Json对象
+            child["id"] = QString::number(rtu.id).toLocal8Bit().data(); // 线路 ID
+            child["name"] = rtu.name;                                   // 线路名称
+            child["type"] = "rtu";                                      // 线路类型
+            children.append(child);
+        }
+
+        station["children"] = children;
+        root.append(station);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
 }

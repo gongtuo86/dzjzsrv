@@ -65,6 +65,7 @@ public:
 
 private slots:
     void onRelatedFeedLineTextChanged(const QString &text);
+    void onRelatedRtuTextChanged(const QString &text);
 
 private:
     QMap<QString, QWidget *> m_controlMap;

@@ -10,10 +10,11 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
     m_roundFuncTypeMap = getDMConfig("低周减载轮次功能类型");
     m_loadTypeMap = getDMConfig("低周减载负荷类型");
     m_strapMap = getDMConfig("低周减载投退计划类型");
+    m_deviceTypeMap = getDMConfig("低周减载装置类型");
+    m_deviceFuncTypeMap = getDMConfig("低周减载装置功能类型");
     m_roundTypeMap = getRoundTypeMap();
     m_staIdNameMap = getStaIdNameMap();
     m_roundIdNameMap = getRoundIdNameMap();
-
     m_areaIdNameMap = getAreaIdNameMap();
 
     m_lineList = getLineList();
@@ -21,6 +22,9 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
 
     m_breakerList = getBreakList();
     m_breakIdNameMap = getBreakerIdNameMap(m_breakerList);
+
+    m_rtuList = getRtuList();
+    m_rtuIdNameMap = getRtuIdNameMap(m_rtuList);
 }
 
 QVector<AreaDto> DBManager::getAreaList()
@@ -253,4 +257,49 @@ QMap<QString, QString> DBManager::getLineIdNameMap(const QVector<LineDto> &lines
 void DBManager::reloadRoundIdNameMap()
 {
     m_roundIdNameMap = getRoundIdNameMap();
+}
+
+QVector<DeviceDto> DBManager::getDeviceList()
+{
+    QString query = QString::fromLocal8Bit("select 编号,名称,装置类型,功能类型,关联轮次项数,所属厂站 from xopensdb.dbo.低周减载装置参数表");
+    return getList<DeviceDto>(query);
+}
+
+int DBManager::updateDeviceTable(const DeviceDto &device)
+{
+    return updateTable(device, "xopensdb.dbo.低周减载装置参数表");
+}
+
+int DBManager::insertRoundItemTable(const DeviceDto &device)
+{
+    return insertTable(device, "xopensdb.dbo.低周减载装置参数表");
+}
+
+QVector<RtuDto> DBManager::getRtuList()
+{
+    QString query = QString::fromLocal8Bit(
+        "select a.序号,a.描述,a.子站代码,b.名称 from xopensdb.RTU参数表 a, 厂站参数表 b"
+        " where a.子站代码=b.编号 and a.RTU类型=0 order by a.序号");
+    return getList<RtuDto>(query);
+}
+
+QMap<int, QString> DBManager::getRtuIdNameMap(const QVector<RtuDto> &rtus)
+{
+    QMap<int, QString> rtuIdNameMap;
+    for (const auto &rtu : rtus)
+    {
+        rtuIdNameMap.insert(rtu.id, QString::fromLocal8Bit(rtu.name));
+    }
+    return rtuIdNameMap;
+}
+
+QString DBManager::getStaByRtuId(int rtuId)
+{
+    for (const auto &rtu : m_rtuList)
+    {
+        if (rtu.id == rtuId)
+        {
+            return rtu.staId;
+        }
+    }
 }
