@@ -1,5 +1,7 @@
 #include <QApplication>
 #include <QTextCodec>
+#include <QFile>
+#include <QTextStream>
 
 #include "dflogger.h"
 #include "mainwindow.h"
@@ -7,6 +9,17 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    QFile file(":/qdarkstyle/light/lightstyle.qss");
+    if (file.open(QFile::ReadOnly| QFile::Text))
+    {
+        QTextStream stream(&file);
+        a.setStyleSheet(stream.readAll());
+    }
+    else
+    {
+        qDebug("can not open");
+    }
 
     // ÈÕÖ¾
     DFLogger::instance()->setOStreamAppender();

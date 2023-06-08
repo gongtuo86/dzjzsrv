@@ -26,7 +26,11 @@ public:
         if (option.state & QStyle::State_Selected)
         {
             painter->fillRect(option.rect, option.palette.highlight());
-            painter->setPen(option.palette.highlightedText().color());
+            painter->setPen(opt.palette.highlightedText().color());
+        }
+        else
+        {
+            painter->setPen(opt.palette.text().color());
         }
 
         painter->drawText(opt.rect, Qt::AlignLeft | Qt::AlignVCenter, text);

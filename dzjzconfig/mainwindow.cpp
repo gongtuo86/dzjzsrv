@@ -55,6 +55,7 @@ void MainWindow::setupAreaTable()
                                                          << QString::fromLocal8Bit("关联厂站")
                                                          << QString::fromLocal8Bit("操作"));
 
+    // ui->m_tableViewArea->setAlternatingRowColors(true);
     ui->m_tableViewArea->setModel(m_areaModel);
     ui->m_tableViewArea->setColumnWidth(0, qMax(ui->m_tableViewArea->columnWidth(0), 10));
     ui->m_tableViewArea->setColumnWidth(1, qMax(ui->m_tableViewArea->columnWidth(1), 100));
@@ -77,6 +78,7 @@ void MainWindow::setupRoundTree()
     m_roundModel = new QStandardItemModel(this);
     m_roundModel->setHorizontalHeaderLabels(QStringList() << QString::fromLocal8Bit("编号")
                                                           << QString::fromLocal8Bit("名称"));
+    // ui->m_roundTreeView->setAlternatingRowColors(true);
     ui->m_roundTreeView->setModel(m_roundModel);
     QItemSelectionModel *roundSelectionModel = new QItemSelectionModel(m_roundModel, this);
     ui->m_roundTreeView->setSelectionModel(roundSelectionModel);
@@ -112,6 +114,7 @@ void MainWindow::setupRoundItemTable()
                                                               << QString::fromLocal8Bit("关联开关")
                                                               << QString::fromLocal8Bit("操作"));
 
+    // ui->m_roundItemTableView->setAlternatingRowColors(true);
     ui->m_roundItemTableView->setModel(m_roundItemModel);
     ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_areaIdNameMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_roundItemTableView));
@@ -139,6 +142,7 @@ void MainWindow::setupDeviceTable()
                                                            << QString::fromLocal8Bit("所属厂站")
                                                            << QString::fromLocal8Bit("操作"));
 
+    // ui->m_tableViewDevice->setAlternatingRowColors(true);
     ui->m_tableViewDevice->setModel(m_deviceModel);
     ui->m_tableViewDevice->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_deviceTypeMap, ui->m_tableViewDevice));
     ui->m_tableViewDevice->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_deviceFuncTypeMap, ui->m_tableViewDevice));
@@ -156,7 +160,7 @@ void MainWindow::setupDeviceParaTable()
 {
     m_deviceParaModel = new QStandardItemModel(this);
     m_deviceParaModel->setHorizontalHeaderLabels(QStringList() << QString::fromLocal8Bit("装置编号")
-                                                               << QString::fromLocal8Bit("轮次序号")
+                                                               << QString::fromLocal8Bit("轮次编号")
                                                                << QString::fromLocal8Bit("压板ID")
                                                                << QString::fromLocal8Bit("频率或电压定值ID")
                                                                << QString::fromLocal8Bit("动作延时定值ID")
@@ -164,9 +168,10 @@ void MainWindow::setupDeviceParaTable()
                                                                << QString::fromLocal8Bit("动作信号ID")
                                                                << QString::fromLocal8Bit("操作"));
 
+    // ui->m_tableViewDevicePara->setAlternatingRowColors(true);
     ui->m_tableViewDevicePara->setModel(m_deviceParaModel);
     ui->m_tableViewDevicePara->hideColumn(0);
-    ui->m_tableViewDevicePara->setItemDelegateForColumn(1, new DMDelegateInt(m_pDbManager->m_roundTypeMap, ui->m_tableViewDevicePara));
+    ui->m_tableViewDevicePara->setItemDelegateForColumn(1, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_tableViewDevicePara));
     m_BtnDelegateDevicePara = new OperationDelegate(ui->m_tableViewDevicePara);
     connect(m_BtnDelegateDevicePara, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonDeviceParaClicked(QModelIndex)));
     connect(m_BtnDelegateDevicePara, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonDeviceParaClicked(QModelIndex)));
@@ -277,7 +282,6 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
                 return;
             }
             updateAreaModel(area, index.row());
-            m_pDbManager->reloadRoundIdNameMap();
         }
         else
         {
@@ -287,7 +291,6 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
                 return;
             }
             updateAreaModel(area);
-            m_pDbManager->reloadRoundIdNameMap();
         }
     }
 }
@@ -540,6 +543,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
                 return -1;
             }
             updateRoundModel(round, index.row());
+            m_pDbManager->reloadRoundIdNameMap();
         }
         else
         {
@@ -549,6 +553,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
                 return -1;
             }
             updateRoundModel(round);
+            m_pDbManager->reloadRoundIdNameMap();
         }
     }
 
@@ -1031,7 +1036,9 @@ void MainWindow::onDeleteButtonDeviceClicked(QModelIndex index)
     if (m_pDbManager->deleteDeviceTable(id) != CS_SUCCEED)
         return;
 
-        m_deviceModel->removeRow(index.row());
+    m_deviceModel->removeRow(index.row());
+
+    m_deviceParaModel->clear();
 }
 
 void MainWindow::populateDeviceData(QList<QPair<QString, QVariant>> &data, const DeviceDto &device)
@@ -1230,8 +1237,8 @@ void MainWindow::populateDeviceParaData(QList<QPair<QString, QVariant>> &data, c
 
     ComboBoxData<int> comboBoxNo;
     comboBoxNo.currentValue = devicePara.no;
-    comboBoxNo.options = m_pDbManager->m_roundTypeMap;
-    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("轮次类型"), QVariant::fromValue(comboBoxNo)));
+    comboBoxNo.options = m_pDbManager->m_roundIdNameMap;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("轮次编号"), QVariant::fromValue(comboBoxNo)));
 
     JsonDialogData strapData;
     strapData.initialText = QString::fromLocal8Bit(devicePara.strapId);
@@ -1324,7 +1331,7 @@ DeviceParaDto MainWindow::extractDeviceParaData(const QList<QPair<QString, QVari
         {
             newDevicePara.id = pair.second.toInt();
         }
-        else if (pair.first == QString::fromLocal8Bit("轮次类型"))
+        else if (pair.first == QString::fromLocal8Bit("轮次编号"))
         {
             newDevicePara.no = pair.second.toInt();
         }

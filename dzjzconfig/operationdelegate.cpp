@@ -31,20 +31,23 @@ void OperationDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     deleteButton.rect = buttonRect(option, deleteButton.text, 1);
     modifyButton.rect = buttonRect(option, modifyButton.text, 2);
 
-    painter->fillRect(detailButton.rect, Qt::blue);  // 使用红色填充增加按钮的背景
-    painter->fillRect(deleteButton.rect, Qt::red);   // 使用绿色填充删除按钮的背景
-    painter->fillRect(modifyButton.rect, Qt::green); // 使用蓝色填充修改按钮的背景
+    // Set the button colors
+    painter->setBrush(QColor("#008B8B"));
+    painter->setPen(QColor("#008B8B"));
+    painter->drawRoundedRect(detailButton.rect, 5, 5);
 
-    QPalette palette = QApplication::style()->standardPalette();
-    palette.setColor(QPalette::ButtonText, Qt::white);
+    painter->setBrush(QColor("#B22222"));
+    painter->setPen(QColor("#B22222"));
+    painter->drawRoundedRect(deleteButton.rect, 5, 5);
 
-    detailButton.palette = palette;
-    deleteButton.palette = palette;
-    modifyButton.palette = palette;
+    painter->setBrush(QColor("#00688B"));
+    painter->setPen(QColor("#00688B"));
+    painter->drawRoundedRect(modifyButton.rect, 5, 5);
 
-    QApplication::style()->drawControl(QStyle::CE_PushButtonLabel, &detailButton, painter);
-    QApplication::style()->drawControl(QStyle::CE_PushButtonLabel, &deleteButton, painter);
-    QApplication::style()->drawControl(QStyle::CE_PushButtonLabel, &modifyButton, painter);
+    painter->setPen(Qt::white);
+    painter->drawText(detailButton.rect, Qt::AlignCenter, detailButton.text);
+    painter->drawText(deleteButton.rect, Qt::AlignCenter, deleteButton.text);
+    painter->drawText(modifyButton.rect, Qt::AlignCenter, modifyButton.text);
 }
 
 // 编辑事件

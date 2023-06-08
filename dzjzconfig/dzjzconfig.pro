@@ -50,3 +50,8 @@ SOURCES += main.cpp\
 
 FORMS    += mainwindow.ui \
             jsontreedialog.ui
+
+RESOURCES += \
+    theme/light/lightstyle.qrc \
+    theme/dark/darkstyle.qrc
+
