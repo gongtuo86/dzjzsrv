@@ -77,6 +77,8 @@ public:
     quint8 loadType;
     quint8 strapPlan;
     char linkedBreak[DEF_CODE_LEN];
+    char pName[DEF_CODE_LEN];
+    int deviceId;
 };
 
 class SubstationDto
@@ -132,4 +134,13 @@ public:
     qint16 groupNo;
     qint16 no;
     char name[160];
+};
+
+class TMDto
+{
+public:
+    char id[DEF_CODE_LEN];
+    char name[DESCRIBE_LEN];
+    char staId[SUBSTATION_LEN];
+    char staName[DESCRIBE_LEN];
 };

@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QMessageBox>
+#include <QMenu>
 
 #include "commonformdialog.h"
 #include "dbmanager.h"
@@ -26,8 +27,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     setupModels();
 
     // 设置左侧列表宽度
-    int width = ui->m_listWidget->sizeHintForColumn(0) + 2 * ui->m_listWidget->frameWidth();
+    ui->m_listWidget->setIconSize(QSize(32, 32));
+    QIcon icon[3] = {QIcon(":/qss_icons/light/rc/area.png"), QIcon(":/qss_icons/light/rc/device.png"), QIcon(":/qss_icons/light/rc/item.png")};
+    for (int i = 0; i < ui->m_listWidget->count(); ++i)
+    {
+        QListWidgetItem *pItem = ui->m_listWidget->item(i);
+        pItem->setIcon(icon[i]);
+    }
+    int width = ui->m_listWidget->sizeHintForColumn(0) + 2 * ui->m_listWidget->frameWidth() + 20;
     ui->m_listWidget->setFixedWidth(width);
+
+    onModuleItemClicked(ui->m_listWidget->item(0));
 }
 
 MainWindow::~MainWindow()
@@ -56,14 +66,11 @@ void MainWindow::setupAreaTable()
                                                          << QString::fromLocal8Bit("操作"));
 
     // ui->m_tableViewArea->setAlternatingRowColors(true);
+    ui->m_tableViewArea->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    // ui->m_tableViewArea->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
     ui->m_tableViewArea->setModel(m_areaModel);
-    ui->m_tableViewArea->setColumnWidth(0, qMax(ui->m_tableViewArea->columnWidth(0), 10));
-    ui->m_tableViewArea->setColumnWidth(1, qMax(ui->m_tableViewArea->columnWidth(1), 100));
-    ui->m_tableViewArea->setColumnWidth(2, qMax(ui->m_tableViewArea->columnWidth(2), 100));
     ui->m_tableViewArea->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_areaTypeMap, ui->m_tableViewArea));
-    ui->m_tableViewArea->setColumnWidth(3, qMax(ui->m_tableViewArea->columnWidth(3), 100));
     ui->m_tableViewArea->setItemDelegateForColumn(3, new DMDelegateString(m_pDbManager->m_staIdNameMap, ui->m_tableViewArea));
-    ui->m_tableViewArea->setColumnWidth(4, qMax(ui->m_tableViewArea->columnWidth(4), 150));
     m_BtnDelegateArea = new OperationDelegate(ui->m_tableViewArea);
     connect(ui->m_pushButtonAddArea, SIGNAL(clicked()), this, SLOT(onAddButtonAreaClicked()));
     connect(m_BtnDelegateArea, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonAreaClicked(QModelIndex)));
@@ -79,6 +86,7 @@ void MainWindow::setupRoundTree()
     m_roundModel->setHorizontalHeaderLabels(QStringList() << QString::fromLocal8Bit("编号")
                                                           << QString::fromLocal8Bit("名称"));
     // ui->m_roundTreeView->setAlternatingRowColors(true);
+    ui->m_roundTreeView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->m_roundTreeView->setModel(m_roundModel);
     QItemSelectionModel *roundSelectionModel = new QItemSelectionModel(m_roundModel, this);
     ui->m_roundTreeView->setSelectionModel(roundSelectionModel);
@@ -112,9 +120,12 @@ void MainWindow::setupRoundItemTable()
                                                               << QString::fromLocal8Bit("负荷类型")
                                                               << QString::fromLocal8Bit("投退计划")
                                                               << QString::fromLocal8Bit("关联开关")
+                                                              << QString::fromLocal8Bit("有功代码")
+                                                              << QString::fromLocal8Bit("关联装置")
                                                               << QString::fromLocal8Bit("操作"));
 
     // ui->m_roundItemTableView->setAlternatingRowColors(true);
+    ui->m_roundItemTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->m_roundItemTableView->setModel(m_roundItemModel);
     ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_areaIdNameMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_roundItemTableView));
@@ -122,11 +133,14 @@ void MainWindow::setupRoundItemTable()
     ui->m_roundItemTableView->setItemDelegateForColumn(5, new DMDelegateInt(m_pDbManager->m_loadTypeMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(6, new DMDelegateInt(m_pDbManager->m_strapMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(7, new DMDelegateString(m_pDbManager->m_breakIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(8, new DMDelegateString(m_pDbManager->m_tmIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(9, new DMDelegateInt(m_pDbManager->m_deviceIdNameMap, ui->m_roundItemTableView));
+
     m_BtnDelegateRoundItem = new OperationDelegate(ui->m_roundItemTableView);
     connect(m_BtnDelegateRoundItem, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonRoundItemClicked(QModelIndex)));
     connect(m_BtnDelegateRoundItem, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonRoundItemClicked(QModelIndex)));
     connect(m_BtnDelegateRoundItem, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonRoundItemClicked(QModelIndex)));
-    ui->m_roundItemTableView->setItemDelegateForColumn(8, m_BtnDelegateRoundItem);
+    ui->m_roundItemTableView->setItemDelegateForColumn(10, m_BtnDelegateRoundItem);
     connect(ui->m_addRoundItemPushButton, SIGNAL(clicked()), this, SLOT(onAddRoundItemButtonClicked()));
 }
 
@@ -143,6 +157,7 @@ void MainWindow::setupDeviceTable()
                                                            << QString::fromLocal8Bit("操作"));
 
     // ui->m_tableViewDevice->setAlternatingRowColors(true);
+    ui->m_tableViewDevice->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->m_tableViewDevice->setModel(m_deviceModel);
     ui->m_tableViewDevice->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_deviceTypeMap, ui->m_tableViewDevice));
     ui->m_tableViewDevice->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_deviceFuncTypeMap, ui->m_tableViewDevice));
@@ -169,6 +184,7 @@ void MainWindow::setupDeviceParaTable()
                                                                << QString::fromLocal8Bit("操作"));
 
     // ui->m_tableViewDevicePara->setAlternatingRowColors(true);
+    ui->m_tableViewDevicePara->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->m_tableViewDevicePara->setModel(m_deviceParaModel);
     ui->m_tableViewDevicePara->hideColumn(0);
     ui->m_tableViewDevicePara->setItemDelegateForColumn(1, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_tableViewDevicePara));
@@ -267,7 +283,8 @@ void MainWindow::readRoundTable()
 void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
 {
     CommonFormDialog dialog(data, act, this);
-    dialog.setWindowTitle(act == CommonFormDialog::TYPE_MODIFY ? QString::fromLocal8Bit("区域修改") : QString::fromLocal8Bit("区域新增"));
+    static const QStringList sTitleList = {QString::fromLocal8Bit("区域详情"), QString::fromLocal8Bit("区域修改"), QString::fromLocal8Bit("区域新增")};
+    dialog.setWindowTitle(sTitleList[act]);
     if (dialog.exec() == QDialog::Accepted)
     {
         QList<QPair<QString, QVariant>> updatedData = dialog.getData();
@@ -528,7 +545,9 @@ void MainWindow::updateRoundModel(const RoundDto &newRound, int row)
 int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
 {
     CommonFormDialog dialog(data, act, this);
-    dialog.setWindowTitle(act == CommonFormDialog::TYPE_MODIFY ? QString::fromLocal8Bit("轮次修改") : QString::fromLocal8Bit("轮次新增"));
+    static const QStringList sTitleList = {QString::fromLocal8Bit("轮次详情"), QString::fromLocal8Bit("轮次修改"), QString::fromLocal8Bit("轮次新增")};
+    dialog.setWindowTitle(sTitleList[act]);
+    
     if (dialog.exec() == QDialog::Accepted)
     {
         QList<QPair<QString, QVariant>> updatedData = dialog.getData();
@@ -650,6 +669,8 @@ void MainWindow::populateRoundItemModel(const QVector<RoundItemDto> &roundItemLi
         m_roundItemModel->setItem(i, 5, new QStandardItem(QString::number(roundItemList[i].loadType)));
         m_roundItemModel->setItem(i, 6, new QStandardItem(QString::number(roundItemList[i].strapPlan)));
         m_roundItemModel->setItem(i, 7, new QStandardItem(roundItemList[i].linkedBreak));
+        m_roundItemModel->setItem(i, 8, new QStandardItem(roundItemList[i].pName));
+        m_roundItemModel->setItem(i, 9, new QStandardItem(QString::number(roundItemList[i].deviceId)));
     }
 }
 
@@ -665,6 +686,8 @@ void MainWindow::onAddRoundItemButtonClicked()
     item.loadType = 0;
     item.strapPlan = 0;
     strcpy(item.linkedBreak, "");
+    strcpy(item.pName, "");
+    item.deviceId = 0;
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
@@ -707,6 +730,18 @@ void MainWindow::populateRoundItemData(QList<QPair<QString, QVariant>> &data, co
     breakData.isMultiSelect = false;
     breakData.jsonData = getBreakerJson(m_pDbManager->m_breakerList);
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联开关"), QVariant::fromValue(breakData)));
+
+    JsonDialogData pData;
+    pData.initialText = item.pName;
+    pData.isMultiSelect = false;
+    pData.jsonData = m_pDbManager->m_tmJson;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("有功代码"), QVariant::fromValue(pData)));
+
+    JsonDialogData deviceData;
+    deviceData.initialText = QString::number(item.deviceId);
+    deviceData.isMultiSelect = false;
+    deviceData.jsonData = getDeviceJson(m_pDbManager->m_deviceList);
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联装置"), QVariant::fromValue(deviceData)));
 }
 
 RoundItemDto MainWindow::extractRoundItemData(const QList<QPair<QString, QVariant>> &updatedData)
@@ -745,6 +780,14 @@ RoundItemDto MainWindow::extractRoundItemData(const QList<QPair<QString, QVarian
         else if (pair.first == QString::fromLocal8Bit("关联开关"))
         {
             strncpy(newRoundItem.linkedBreak, pair.second.toString().toLocal8Bit().data(), sizeof(newRoundItem.linkedBreak) - 1);
+        }
+        else if (pair.first == QString::fromLocal8Bit("有功代码"))
+        {
+            strncpy(newRoundItem.pName, pair.second.toString().toLocal8Bit().data(), sizeof(newRoundItem.pName) - 1);
+        }
+        else if (pair.first == QString::fromLocal8Bit("关联装置"))
+        {
+            newRoundItem.deviceId = pair.second.toInt();
         }
     }
     return newRoundItem;
@@ -800,6 +843,8 @@ void MainWindow::updateRoundItemModel(const RoundItemDto &newRoundItem, int row)
     m_roundItemModel->setItem(row, 5, new QStandardItem(QString::number(newRoundItem.loadType)));
     m_roundItemModel->setItem(row, 6, new QStandardItem(QString::number(newRoundItem.strapPlan)));
     m_roundItemModel->setItem(row, 7, new QStandardItem(newRoundItem.linkedBreak));
+    m_roundItemModel->setItem(row, 8, new QStandardItem(newRoundItem.pName));
+    m_roundItemModel->setItem(row, 9, new QStandardItem(QString::number(newRoundItem.deviceId)));
 }
 
 dfJson::Value MainWindow::getLineJson(const QVector<LineDto> &lines)
@@ -902,6 +947,8 @@ void MainWindow::onDetailButtonRoundItemClicked(QModelIndex index)
     item.loadType = m_roundItemModel->index(index.row(), 5).data().toInt();
     item.strapPlan = m_roundItemModel->index(index.row(), 6).data().toInt();
     strncpy(item.linkedBreak, m_roundItemModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
+    strncpy(item.pName, m_roundItemModel->index(index.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
+    item.deviceId = m_roundItemModel->index(index.row(), 9).data().toInt();
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
@@ -940,6 +987,8 @@ void MainWindow::onModifyButtonRoundItemClicked(QModelIndex index)
     item.loadType = m_roundItemModel->index(index.row(), 5).data().toInt();
     item.strapPlan = m_roundItemModel->index(index.row(), 6).data().toInt();
     strncpy(item.linkedBreak, m_roundItemModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
+    strncpy(item.pName, m_roundItemModel->index(index.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
+    item.deviceId = m_roundItemModel->index(index.row(), 9).data().toInt();
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
@@ -1037,8 +1086,7 @@ void MainWindow::onDeleteButtonDeviceClicked(QModelIndex index)
         return;
 
     m_deviceModel->removeRow(index.row());
-
-    m_deviceParaModel->clear();
+    m_deviceParaModel->removeRows(0, m_deviceParaModel->rowCount());
 }
 
 void MainWindow::populateDeviceData(QList<QPair<QString, QVariant>> &data, const DeviceDto &device)
@@ -1074,6 +1122,13 @@ void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, i
     CommonFormDialog dialog(data, act, this);
     static const QStringList sTitleList = {QString::fromLocal8Bit("装置详情"), QString::fromLocal8Bit("装置修改"), QString::fromLocal8Bit("装置新增")};
     dialog.setWindowTitle(sTitleList[act]);
+
+    if (act == CommonFormDialog::TYPE_MODIFY)
+    {
+        dialog.setEnabled(QString::fromLocal8Bit("编号"), false);
+        dialog.setEnabled(QString::fromLocal8Bit("所属厂站"), false);
+    }
+
     if (dialog.exec() == QDialog::Accepted)
     {
         QList<QPair<QString, QVariant>> updatedData = dialog.getData();
@@ -1279,6 +1334,7 @@ void MainWindow::showDeviceParaDialog(const QList<QPair<QString, QVariant>> &dat
         QString::fromLocal8Bit("参数修改"),
         QString::fromLocal8Bit("参数新增")};
     dialog.setWindowTitle(sTitleList[act]);
+    dialog.setEnabled(QString::fromLocal8Bit("装置编号"), false);
     if (dialog.exec() == QDialog::Accepted)
     {
         QList<QPair<QString, QVariant>> updatedData = dialog.getData();

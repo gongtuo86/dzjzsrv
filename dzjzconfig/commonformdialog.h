@@ -62,6 +62,7 @@ public:
     ~CommonFormDialog();
 
     QList<QPair<QString, QVariant>> getData();
+    void setEnabled(const QString &fieldName, bool readOnly);
 
 private slots:
     void onRelatedFeedLineTextChanged(const QString &text);

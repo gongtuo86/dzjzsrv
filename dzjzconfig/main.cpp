@@ -11,14 +11,14 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     QFile file(":/qdarkstyle/light/lightstyle.qss");
-    if (file.open(QFile::ReadOnly| QFile::Text))
+    if (file.open(QFile::ReadOnly | QFile::Text))
     {
         QTextStream stream(&file);
         a.setStyleSheet(stream.readAll());
     }
     else
     {
-        qDebug("can not open");
+        qDebug("can not open qss");
     }
 
     // »’÷æ

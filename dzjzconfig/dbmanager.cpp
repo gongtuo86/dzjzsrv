@@ -25,6 +25,13 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
 
     m_rtuList = getRtuList();
     m_rtuIdNameMap = getRtuIdNameMap(m_rtuList);
+
+    m_deviceList = getDeviceList();
+    m_deviceIdNameMap = getDeviceIdNameMap(m_deviceList);
+
+    m_tmList = getTMList();
+    m_tmIdNameMap = getTMNameMap(m_tmList);
+    m_tmJson = getTMJson(m_tmList);
 }
 
 QVector<AreaDto> DBManager::getAreaList()
@@ -131,7 +138,9 @@ int DBManager::updateRoundTable(const RoundDto &round)
 
 QVector<RoundItemDto> DBManager::getRoundItemList(int roundId)
 {
-    QString query = QString::fromLocal8Bit("select 编号,名称,所属分区,所属轮次,关联馈线,负荷类型,投退计划,关联开关 from xopensdb.dbo.低周减载轮次项参数表 where 所属轮次=%1")
+    QString query = QString::fromLocal8Bit(
+                        "select 编号,名称,所属分区,所属轮次,关联馈线,负荷类型,投退计划,关联开关,有功代码,关联装置"
+                        " from xopensdb.低周减载轮次项参数表 where 所属轮次=%1")
                         .arg(roundId);
     return getList<RoundItemDto>(query);
 }
@@ -344,4 +353,84 @@ int DBManager::deleteDeviceTable(int id)
         return CS_FAIL;
 
     return CS_SUCCEED;
+}
+
+QMap<int, QString> DBManager::getDeviceIdNameMap(const QVector<DeviceDto> &list)
+{
+    QMap<int, QString> map;
+    for (const auto &device : list)
+    {
+        map[device.id] = QString::fromLocal8Bit(device.name);
+    }
+
+    return map;
+}
+
+void DBManager::reloadDevice()
+{
+    m_deviceList = getDeviceList();
+    m_roundIdNameMap = getDeviceIdNameMap(m_deviceList);
+}
+
+QVector<TMDto> DBManager::getTMList()
+{
+    QString query = QString::fromLocal8Bit(
+        "select a.代码,a.描述, a.厂站代码, b.名称 from 遥测参数表 a, 厂站参数表 b "
+        "where a.厂站代码=b.编号");
+
+    return getList<TMDto>(query);
+}
+
+QMap<QString, QString> DBManager::getTMNameMap(const QVector<TMDto> &list)
+{
+    QMap<QString, QString> map;
+    for (const auto &tm : list)
+    {
+        map[tm.id] = QString::fromLocal8Bit(tm.name);
+    }
+
+    return map;
+}
+
+dfJson::Value DBManager::getTMJson(const QVector<TMDto> &list)
+{
+    QMap<QString, QVector<TMDto>> stationMap;
+
+    // 将所有线路按变电站 ID 分类
+    for (const auto &tm : list)
+    {
+        stationMap[QString::fromLocal8Bit(tm.staId)].push_back(tm);
+    }
+
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+
+    QMap<QString, QVector<TMDto>>::iterator it;
+    for (it = stationMap.begin(); it != stationMap.end(); ++it)
+    {
+        // 变电站
+        dfJson::Value station(dfJson::objectValue);    // 创建一个空的Json对象
+        station["id"] = it.key().toLocal8Bit().data(); // 变电站 ID
+        station["name"] = it.value().first().staName;  // 变电站名称
+        station["type"] = "substation";                // 变电站类型
+
+        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+
+        // 开关
+        for (const auto &tm : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue); // 创建一个空的Json对象
+            child["id"] = tm.id;
+            child["name"] = tm.name;
+            child["type"] = "tm";
+            children.append(child);
+        }
+
+        station["children"] = children;
+        root.append(station);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
 }

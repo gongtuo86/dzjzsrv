@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QPainter>
 #include <QStyledItemDelegate>
+#include "dflogger.h"
 
 template <typename T>
 class DMDelegateBase : public QStyledItemDelegate
@@ -14,7 +15,7 @@ public:
 
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
     {
-        QStyleOptionViewItem opt = option;
+        QStyleOptionViewItemV4 opt = option;
         initStyleOption(&opt, index);
 
         T value = qvariant_cast<T>(index.model()->data(index, Qt::EditRole));
@@ -28,12 +29,19 @@ public:
             painter->fillRect(option.rect, option.palette.highlight());
             painter->setPen(opt.palette.highlightedText().color());
         }
+        else if (option.state & QStyle::State_MouseOver)
+        {
+            painter->fillRect(option.rect, option.palette.midlight());
+            painter->setPen(opt.palette.text().color());
+        }
         else
         {
             painter->setPen(opt.palette.text().color());
         }
 
-        painter->drawText(opt.rect, Qt::AlignLeft | Qt::AlignVCenter, text);
+        opt.text = text;
+        QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+
         painter->restore();
     }
 
@@ -43,8 +51,8 @@ public:
         QString text = m_valueMap.value(value, QString::fromLocal8Bit(""));
 
         QFontMetrics metrics(option.font);
-        int textWidth = metrics.width(text);
-        int textHeight = metrics.height();
+        int textWidth = metrics.width(text) + 10;
+        int textHeight = metrics.height() + 10;
 
         return QSize(textWidth, textHeight);
     }

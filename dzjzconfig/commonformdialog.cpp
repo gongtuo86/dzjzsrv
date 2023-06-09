@@ -7,6 +7,7 @@
 #include <QDoubleSpinBox>
 #include <QLineEdit>
 #include <QPair>
+#include <QFormLayout>
 
 #include "dflogger.h"
 #include "jsontreedialog.h"
@@ -61,14 +62,12 @@ void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
 
 CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, int type, QWidget *parent) : QDialog(parent)
 {
-    QVBoxLayout *layout = new QVBoxLayout(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    QFormLayout *formLayout = new QFormLayout();
 
     for (const auto &datum : data)
     {
-        QHBoxLayout *hLayout = new QHBoxLayout();
-
         QLabel *label = new QLabel(datum.first, this);
-        hLayout->addWidget(label);
         QWidget *control = NULL;
 
         switch (datum.second.type())
@@ -78,7 +77,6 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                 QSpinBox *spinBox = new QSpinBox(this);
                 control = spinBox;
                 spinBox->setValue(datum.second.toInt());
-                hLayout->addWidget(spinBox);
                 break;
             }
             case QVariant::Double:
@@ -86,7 +84,6 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                 QDoubleSpinBox *doubleSpinBox = new QDoubleSpinBox(this);
                 control = doubleSpinBox;
                 doubleSpinBox->setValue(datum.second.toDouble());
-                hLayout->addWidget(doubleSpinBox);
                 break;
             }
             case QVariant::DateTime:
@@ -94,7 +91,6 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                 QDateTimeEdit *dateTimeEdit = new QDateTimeEdit(this);
                 control = dateTimeEdit;
                 dateTimeEdit->setDateTime(datum.second.toDateTime());
-                hLayout->addWidget(dateTimeEdit);
                 break;
             }
             default:
@@ -114,7 +110,6 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                         }
                     }
                     comboBox->setCurrentIndex(currentIndex);
-                    hLayout->addWidget(comboBox);
                 }
                 else if (datum.second.userType() == qMetaTypeId<ComboBoxData<QString>>())
                 {
@@ -132,7 +127,6 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                         }
                     }
                     comboBox->setCurrentIndex(currentIndex);
-                    hLayout->addWidget(comboBox);
                 }
                 else if (datum.second.userType() == qMetaTypeId<JsonDialogData>())
                 {
@@ -142,7 +136,6 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                     jsonDialogLineEdit->setText(jsonDialogData.initialText);
                     jsonDialogLineEdit->setJsonData(jsonDialogData.jsonData);
                     jsonDialogLineEdit->setMultiSelect(jsonDialogData.isMultiSelect);
-                    hLayout->addWidget(jsonDialogLineEdit);
                     if (datum.first == QString::fromLocal8Bit("关联馈线"))
                     {
                         // 增加和名称的联动功能
@@ -158,22 +151,23 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
                     QLineEdit *lineEdit = new QLineEdit(this);
                     control = lineEdit;
                     lineEdit->setText(datum.second.toString());
-                    hLayout->addWidget(lineEdit);
                 }
                 break;
             }
         }
-        layout->addLayout(hLayout);
+        formLayout->addRow(label, control);
         m_controlMap.insert(datum.first, control);
     }
+
+    mainLayout->addLayout(formLayout);
 
     QDialogButtonBox::StandardButtons buttons = (type == TYPE_DETAIL) ? QDialogButtonBox::Close : (QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     QDialogButtonBox *buttonBox = new QDialogButtonBox(buttons, Qt::Horizontal, this);
     connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
-    layout->addWidget(buttonBox);
+    mainLayout->addWidget(buttonBox);
 
-    setLayout(layout);
+    setLayout(mainLayout);
 }
 
 CommonFormDialog::~CommonFormDialog()
@@ -266,5 +260,14 @@ void CommonFormDialog::onRelatedRtuTextChanged(const QString &text)
                 stationComboBox->setCurrentIndex(index);
             }
         }
+    }
+}
+
+void CommonFormDialog::setEnabled(const QString &fieldName, bool readOnly)
+{
+    QWidget *widget = m_controlMap.value(fieldName);
+    if (widget)
+    {
+        widget->setEnabled(readOnly);
     }
 }

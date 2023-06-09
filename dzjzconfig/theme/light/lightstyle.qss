@@ -29,6 +29,7 @@ Resetting everything helps to unify styles across different operating systems
   border-style: none;
   border-image: none;
   outline: 0;
+  font-size: 16px;
 }
 
 /* specific reset for elements inside QToolBar */
@@ -1966,7 +1967,7 @@ QHeaderView::section {
   color: #19232D;
   border-radius: 0;
   text-align: left;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 QHeaderView::section::horizontal {
@@ -2213,20 +2214,4 @@ QAbstractView:selected {
 PlotWidget {
   /* Fix cut labels in plots #134 */
   padding: 0px;
-}
-
-/* ×Ô¶¨Òå */
-QPushButton#detailButton {
-    background-color: #008B8B;
-    color: white;
-}
-
-QPushButton#deleteButton {
-    background-color: #B22222;
-    color: white;
-}
-
-QPushButton#modifyButton {
-    background-color: #00688B;
-    color: white;
 }

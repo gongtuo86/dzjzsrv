@@ -131,6 +131,7 @@ JsonTreeDialog::JsonTreeDialog(const dfJson::Value &data, bool isMultiSelect, QW
     ui->setupUi(this);
     m_proxyModel->setSourceModel(m_model);
     ui->m_treeView->setModel(m_proxyModel);
+    m_selectedIds.clear();
 
     if (m_isMultiSelect)
     {
@@ -187,6 +188,7 @@ void JsonTreeDialog::onItemChanged(QStandardItem *item)
         // 如果项被取消选中，将其 id 从 m_selectedIds 中移除
         m_selectedIds.removeAll(item->data().toString());
     }
+    DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
 }
 
 /**
@@ -196,6 +198,7 @@ void JsonTreeDialog::onItemChanged(QStandardItem *item)
  */
 QStringList JsonTreeDialog::getSelectedIds() const
 {
+    DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
     return m_selectedIds;
 }
 
@@ -223,6 +226,7 @@ void JsonTreeDialog::onSelectionChanged(const QItemSelection &selected, const QI
 
         // 将选中项的id添加到 m_selectedIds 中
         m_selectedIds.append(item->data().toString());
+        DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
     }
 }
 
@@ -279,8 +283,9 @@ void JsonTreeDialog::setSelectedIds(const QStringList &ids)
         {
             QStandardItem *item = m_model->itemFromIndex(matches.first());
             ui->m_treeView->setCurrentIndex(m_proxyModel->mapFromSource(item->index()));
-            m_selectedIds.append(ids.first());
+            //m_selectedIds.append(ids.first());
         }
+        DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
         return;
     }
 
@@ -297,7 +302,8 @@ void JsonTreeDialog::setSelectedIds(const QStringList &ids)
         {
             QStandardItem *item = m_model->itemFromIndex(match);
             item->setCheckState(Qt::Checked);
-            m_selectedIds.append(id);
+            //m_selectedIds.append(id);
         }
     }
+    DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
 }

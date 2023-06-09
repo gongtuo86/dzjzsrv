@@ -53,5 +53,6 @@ FORMS    += mainwindow.ui \
 
 RESOURCES += \
     theme/light/lightstyle.qrc \
-    theme/dark/darkstyle.qrc
+    theme/dark/darkstyle.qrc \
+    theme/green/greenstyle.qrc
 

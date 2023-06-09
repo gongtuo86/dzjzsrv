@@ -6,6 +6,7 @@
 #include <QVector>
 
 #include "dto.h"
+#include "dfjson/json.h"
 
 class DBManager : public QObject
 {
@@ -70,6 +71,8 @@ public:
     QVector<RtuDto> getRtuList();
     QMap<int, QString> getRtuIdNameMap(const QVector<RtuDto> &rtus);
     QString getStaByRtuId(int rtu);
+    QMap<int, QString> getDeviceIdNameMap(const QVector<DeviceDto> &list);
+    void reloadDevice();
 
     QVector<DeviceParaDto> getDeviceParaList(int id);
     QVector<FixValueDto> getFixValueList(int rtuNo);
@@ -77,6 +80,10 @@ public:
     int insertDeviceParaTable(const DeviceParaDto &devicePara);
 
     int deleteDeviceTable(int id);
+
+    QVector<TMDto> getTMList();
+    QMap<QString, QString> getTMNameMap(const QVector<TMDto> &list);
+    dfJson::Value getTMJson(const QVector<TMDto> &list);
 
 private:
     explicit DBManager(QObject *parent = 0);
@@ -107,6 +114,13 @@ public:
 
     QVector<RtuDto> m_rtuList;               // Rtu
     QMap<int, QString> m_rtuIdNameMap;       // RTU map
+
+    QVector<DeviceDto> m_deviceList;
+    QMap<int, QString> m_deviceIdNameMap; // ×°ÖÃmap
+
+    QVector<TMDto> m_tmList;
+    QMap<QString,QString> m_tmIdNameMap;
+    dfJson::Value m_tmJson;
 };
 
 template <typename T>

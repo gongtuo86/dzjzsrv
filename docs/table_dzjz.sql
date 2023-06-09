@@ -184,6 +184,7 @@ CREATE TABLE xopensdb.低周减载轮次项参数表 (
     投退计划 TINYINT UNSIGNED NULL,
     关联开关 VARCHAR(24) NULL,
     有功代码 VARCHAR(24) NULL,
+    关联装置 INT NULL,
     CONSTRAINT pk_低周减载轮次项参数表 PRIMARY KEY (编号)
 );
 
@@ -231,13 +232,6 @@ CREATE TABLE xopensdb.低周减载装置参数设定表 (
     CONSTRAINT pk_低周减载装置参数设定表 PRIMARY KEY (所属装置 , 轮次编号)
 );
 
-DROP TABLE IF EXISTS xopensdb.低周减载装置轮次项关联表;
-CREATE TABLE xopensdb.低周减载装置轮次项关联表 (
-    轮次项ID INT NOT NULL,
-    装置ID INT NULL,
-    CONSTRAINT pk_低周减载装置轮次项关联表 PRIMARY KEY (轮次项ID)
-);
-
 DROP VIEW IF EXISTS xopensdb.低周减载轮次项视图;
 CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区 , 分区名称 , 所属轮次 , 轮次名称 , 所属厂站 , 厂站名称 , 关联馈线 , 线路名称 , 负荷类型 , 投退计划 , 关联开关 , 开关名称 , 所属装置 , 装置名称 , 装置类型 , 功能类型 , 装置关联轮次项数 , 压板ID , 频率或电压定值ID , 动作延时定值ID , 告警信号ID , 动作信号ID , 频率或电压整定值 , 动作延时整定值 , 下发应切荷量 , 轮类型 , 轮类型名称 , 有功代码) AS
     SELECT 
@@ -255,7 +249,7 @@ CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区
         a.投退计划,
         a.关联开关,
         b.描述,
-        d.装置ID,
+        a.关联装置,
         e.名称,
         e.装置类型,
         h.功能类型,
@@ -273,24 +267,15 @@ CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区
         a.有功代码
     FROM
         低周减载轮次项参数表 a
-            LEFT JOIN
-        遥信参数表 b ON a.关联开关 = b.代码
-            LEFT JOIN
-        线路参数表 c ON a.关联馈线 = c.编号
-            LEFT JOIN
-        低周减载装置轮次项关联表 d ON a.编号 = d.轮次项ID
-            LEFT JOIN
-        低周减载装置参数表 e ON e.编号 = d.装置ID
-            LEFT JOIN
-        低周减载装置参数设定表 f ON f.所属装置 = d.装置ID
-            LEFT JOIN
-        厂站参数表 g ON g.编号 = b.厂站代码
-            LEFT JOIN
-        低周减载轮次参数表 h ON h.编号 = a.所属轮次
-            LEFT JOIN
-        低周减载区域参数表 i ON i.编号 = a.所属分区
-            LEFT JOIN
-        低周减载轮次类型表 j ON j.编号 = h.轮类型;
+            LEFT JOIN 低周减载装置参数表 e ON e.编号 = a.关联装置
+            LEFT JOIN 低周减载装置参数设定表 f ON f.所属装置 = a.关联装置 AND f.轮次编号=a.所属轮次
+            LEFT JOIN 遥信参数表 b ON a.关联开关 = b.代码
+            LEFT JOIN 线路参数表 c ON a.关联馈线 = c.编号
+            LEFT JOIN 低周减载装置轮次项关联表 d ON a.编号 = d.轮次项ID
+            LEFT JOIN 厂站参数表 g ON g.编号 = b.厂站代码
+            LEFT JOIN 低周减载轮次参数表 h ON h.编号 = a.所属轮次
+            LEFT JOIN 低周减载区域参数表 i ON i.编号 = a.所属分区
+            LEFT JOIN 低周减载轮次类型表 j ON j.编号 = h.轮类型;
 
 DELETE FROM 实时库表模式 WHERE 代码 = 'dzjzrounditem';
 INSERT INTO 实时库表模式 VALUES('dzjzrounditem','低周减载轮次项表',1062,'scadadb','SCADA','scada',1,1,1,1,2000,'id','','','','','','低周减载轮次项视图','低周减载轮次项值表','低周减载轮次项参数表','低周减载轮次参数表','',0,1,'',0,'','','','',0,0,'','');
@@ -333,8 +318,6 @@ INSERT INTO 实时库列模式 VALUES('devicename','装置名称','dzjzrounditem
 INSERT INTO 实时库列模式 VALUES('functype','功能类型','dzjzrounditem',0,0,0,1,350,350,0,0);
 INSERT INTO 实时库列模式 VALUES('devtype','装置类型','dzjzrounditem',0,0,0,1,360,360,0,0);
 INSERT INTO 实时库列模式 VALUES('pname','有功代码','dzjzrounditem',24,10,0,1,370,370,0,0);
-
-
 
 DROP TABLE IF EXISTS xopensdb.低周减载周期巡检任务表;
 CREATE TABLE IF NOT EXISTS xopensdb.低周减载周期巡检任务表 (
@@ -736,28 +719,28 @@ insert into 低周减载轮次参数表 values(12,'长兴电网2023年低压减�
 
 
 delete from 低周减载轮次项参数表;
-insert into 低周减载轮次项参数表 values(1,'线路1',2,1,'Lxy263',5,1,'Pxy_122_2_1YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(2,'线路2',2,2,'Lxy263',5,1,'Pxy_122_2_2YX',"Pxy_121_1_3YC");
+insert into 低周减载轮次项参数表 values(1,'线路1',2,1,'Lxy263',5,1,'Pxy_122_2_1YX',"Pxy_121_1_3YC",1);
+insert into 低周减载轮次项参数表 values(2,'线路2',2,2,'Lxy263',5,1,'Pxy_122_2_2YX',"Pxy_121_1_3YC",2);
 
-insert into 低周减载轮次项参数表 values(3,'线路3',2,1,'Lxy263',4,1,'Pxy_121_2_8YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(4,'线路4',2,1,'Lxy263',4,1,'Pxy_121_2_9YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(5,'线路5',2,2,'Lxy263',3,1,'Pxy_121_2_10YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(6,'线路6',2,2,'Lxy263',3,1,'Pxy_121_2_11YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(7,'线路7',2,3,'Lxy263',2,1,'Pxy_121_2_12YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(8,'线路8',2,3,'Lxy263',2,1,'Pxy_121_2_13YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(9,'线路9',2,4,'Lxy263',1,1,'Pxy_121_2_14YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(10,'线路10',2,4,'Lxy263',1,1,'Pxy_121_2_15YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(11,'线路11',2,5,'Lxy263',5,1,'Pxy_121_2_16YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(12,'线路12',2,5,'Lxy263',5,1,'Pxy_121_2_17YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(13,'线路13',2,6,'Lxy263',5,1,'Pxy_121_2_18YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(14,'线路14',2,6,'Lxy263',5,1,'Pxy_121_2_19YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(15,'线路15',2,7,'Lxy263',5,1,'Pxy_121_2_20YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(16,'线路16',2,7,'Lxy263',5,1,'Pxy_121_2_21YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(17,'线路17',2,8,'Lxy263',5,1,'Pxy_121_2_22YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(18,'线路18',2,8,'Lxy263',5,1,'Pxy_121_2_23YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(19,'线路19',2,9,'Lxy263',5,1,'Pxy_121_2_24YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(20,'线路20',2,9,'Lxy263',5,1,'Pxy_121_2_25YX',"Pxy_121_1_3YC");
-insert into 低周减载轮次项参数表 values(21,'线路21',2,10,'Lxy263',5,1,'Pxy_121_2_26YX',"Pxy_121_1_3YC");
+insert into 低周减载轮次项参数表 values(3,'线路3',2,1,'Lxy263',4,1,'Pxy_121_2_8YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(4,'线路4',2,1,'Lxy263',4,1,'Pxy_121_2_9YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(5,'线路5',2,2,'Lxy263',3,1,'Pxy_121_2_10YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(6,'线路6',2,2,'Lxy263',3,1,'Pxy_121_2_11YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(7,'线路7',2,3,'Lxy263',2,1,'Pxy_121_2_12YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(8,'线路8',2,3,'Lxy263',2,1,'Pxy_121_2_13YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(9,'线路9',2,4,'Lxy263',1,1,'Pxy_121_2_14YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(10,'线路10',2,4,'Lxy263',1,1,'Pxy_121_2_15YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(11,'线路11',2,5,'Lxy263',5,1,'Pxy_121_2_16YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(12,'线路12',2,5,'Lxy263',5,1,'Pxy_121_2_17YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(13,'线路13',2,6,'Lxy263',5,1,'Pxy_121_2_18YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(14,'线路14',2,6,'Lxy263',5,1,'Pxy_121_2_19YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(15,'线路15',2,7,'Lxy263',5,1,'Pxy_121_2_20YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(16,'线路16',2,7,'Lxy263',5,1,'Pxy_121_2_21YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(17,'线路17',2,8,'Lxy263',5,1,'Pxy_121_2_22YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(18,'线路18',2,8,'Lxy263',5,1,'Pxy_121_2_23YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(19,'线路19',2,9,'Lxy263',5,1,'Pxy_121_2_24YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(20,'线路20',2,9,'Lxy263',5,1,'Pxy_121_2_25YX',"Pxy_121_1_3YC",121);
+insert into 低周减载轮次项参数表 values(21,'线路21',2,10,'Lxy263',5,1,'Pxy_121_2_26YX',"Pxy_121_1_3YC",121);
 
 
 delete from 低周减载装置参数表;
@@ -781,31 +764,6 @@ insert into 低周减载装置参数设定表 values(121,9,'Pxy_121_2_42YX','1:3
 insert into 低周减载装置参数设定表 values(121,10,'Pxy_121_2_43YX','1:3:22','1:3:23','Pxy_121_5_1YX','Pxy_121_4_12YX');
 insert into 低周减载装置参数设定表 values(121,11,'Pxy_121_2_44YX','1:3:24','1:3:25','Pxy_121_5_1YX','Pxy_121_4_13YX');
 insert into 低周减载装置参数设定表 values(121,12,'Pxy_121_2_45YX','1:3:26','1:3:27','Pxy_121_5_1YX','Pxy_121_4_14YX');
-
--- 轮次项 装置
-delete from 低周减载装置轮次项关联表;
-insert into 低周减载装置轮次项关联表 values(1,1);
-insert into 低周减载装置轮次项关联表 values(2,2);
-
-insert into 低周减载装置轮次项关联表 values(3,121);
-insert into 低周减载装置轮次项关联表 values(4,121);
-insert into 低周减载装置轮次项关联表 values(5,121);
-insert into 低周减载装置轮次项关联表 values(6,121);
-insert into 低周减载装置轮次项关联表 values(7,121);
-insert into 低周减载装置轮次项关联表 values(8,121);
-insert into 低周减载装置轮次项关联表 values(9,121);
-insert into 低周减载装置轮次项关联表 values(10,121);
-insert into 低周减载装置轮次项关联表 values(11,121);
-insert into 低周减载装置轮次项关联表 values(12,121);
-insert into 低周减载装置轮次项关联表 values(13,121);
-insert into 低周减载装置轮次项关联表 values(14,121);
-insert into 低周减载装置轮次项关联表 values(15,121);
-insert into 低周减载装置轮次项关联表 values(16,121);
-insert into 低周减载装置轮次项关联表 values(17,121);
-insert into 低周减载装置轮次项关联表 values(18,121);
-insert into 低周减载装置轮次项关联表 values(19,121);
-insert into 低周减载装置轮次项关联表 values(20,121);
-insert into 低周减载装置轮次项关联表 values(21,121);
 
 delete from 低周减载周期巡检任务表;
 -- INSERT INTO 低周减载周期巡检任务表 VALUES (1, '任务1', 1672531200, 1672617600, 10, '1,2,3', 'xy', '1,2');
