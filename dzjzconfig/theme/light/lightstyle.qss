@@ -29,7 +29,7 @@ Resetting everything helps to unify styles across different operating systems
   border-style: none;
   border-image: none;
   outline: 0;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 /* specific reset for elements inside QToolBar */
@@ -1967,7 +1967,7 @@ QHeaderView::section {
   color: #19232D;
   border-radius: 0;
   text-align: left;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 QHeaderView::section::horizontal {

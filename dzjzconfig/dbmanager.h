@@ -38,6 +38,7 @@ public:
     int updateTable(const QString &sql);
     int getMaxIDFromDataBase(const char *tableName);
 
+
     QMap<QString, QString> getStaIdNameMap();
 
     QVector<BreakDto> getBreakList();
@@ -45,7 +46,7 @@ public:
     dfJson::Value getBreakerJson(const QVector<BreakDto> &breakers);
 
     QVector<AreaVo> getAreaVoList();
-    QMap<int, QString> getAreaIdNameMap(const QVector<AreaVo> &areas);
+    QMap<int, QString> getAreaIdNameMap(const QVector<AreaVo> &areas, int type);
     int updateAreaTable(const AreaVo &area);
     int insertAreaTable(const AreaVo &area);
     void reloadAreaTable();
@@ -86,6 +87,7 @@ public:
     int updateDeviceParaTable(const DeviceParaDto &devicePara);
     int insertDeviceParaTable(const DeviceParaDto &devicePara);
     int updateRoundItemCount(int deviceId, int nCount);
+    QMap<int, QString> getDeviceOptionsForArea(int areaId);
     int deleteDeviceParaTable(int deviceId, int roundId);
 
     QVector<TMDto> getTMList();
@@ -117,7 +119,8 @@ public:
     QMap<int, QString> m_deviceFuncTypeMap; // 装置功能类型
 
     QVector<AreaVo> m_areaList;             //
-    QMap<int, QString> m_areaIdNameMap;     // 区域
+    QMap<int, QString> m_allAreaIdNameMap;  // 区域
+    QMap<int, QString> m_subAreaIdNameMap;  // 变电站区域
 
     QMap<QString, QString> m_staIdNameMap;  // 变电站
 

@@ -116,6 +116,8 @@ void MainWindow::setupRoundTree()
     ui->m_roundTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->m_roundTreeView, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(showRoundContextMenu(const QPoint &)));
 
+    ui->m_roundTreeView->header()->setHidden(true);
+
     // 隐藏不需要的列
     ui->m_roundTreeView->setColumnHidden(1, true);
     ui->m_roundTreeView->setColumnHidden(2, true);
@@ -124,8 +126,6 @@ void MainWindow::setupRoundTree()
     ui->m_roundTreeView->setColumnHidden(5, true);
     ui->m_roundTreeView->setColumnHidden(6, true);
     ui->m_roundTreeView->setColumnHidden(7, true);
-
-    ui->m_roundTreeView->header()->setHidden(true);
 }
 
 void MainWindow::setupRoundItemTable()
@@ -146,16 +146,32 @@ void MainWindow::setupRoundItemTable()
 
     // ui->m_roundItemTableView->setAlternatingRowColors(true);
     ui->m_roundItemTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->m_roundItemTableView->setModel(m_roundItemModel);
+    // ui->m_roundItemTableView->setModel(m_roundItemModel);
     ui->m_roundItemTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     ui->m_roundItemTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-
     ui->m_roundItemTableView->setSortingEnabled(true);
+
+    m_roundItemProxyModel = new RoundItemFilterProxyModel(this);
+    m_roundItemProxyModel->setSourceModel(m_roundItemModel);
+
+    ui->m_roundItemTableView->setModel(m_roundItemProxyModel);
+    ui->m_areaFilterComboBox->setProperty("filterType", "area");
+    ui->m_roundFilterComboBox->setProperty("filterType", "round");
+    ui->m_loadTypeFilterComboBox->setProperty("filterType", "loadType");
+    ui->m_strapFilterComboBox->setProperty("filterType", "strap");
+    ui->m_deviceFilterComboBox->setProperty("filterType", "device");
+
+    connect(ui->m_areaFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
+    connect(ui->m_areaFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateDeviceOptions(int)));
+    connect(ui->m_roundFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
+    connect(ui->m_loadTypeFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
+    connect(ui->m_strapFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
+    connect(ui->m_deviceFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
 
     // 禁止第10列排序
     ui->m_roundItemTableView->horizontalHeader()->setResizeMode(10, QHeaderView::Interactive);
 
-    ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_areaIdNameMap, ui->m_roundItemTableView));
+    ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_subAreaIdNameMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(4, new DMDelegateString(m_pDbManager->m_lineIdNameMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(5, new DMDelegateInt(m_pDbManager->m_loadTypeMap, ui->m_roundItemTableView));
@@ -190,7 +206,11 @@ void MainWindow::setupRoundItemTable()
 
     m_roundItemContextMenu->addAction(QString::fromLocal8Bit("设置关联装置"), this, SLOT(onSetDevice()));
 
-    //updateComboBox()
+    updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
+    updateComboBox(ui->m_roundFilterComboBox, m_pDbManager->m_roundIdNameMap);
+    updateComboBox(ui->m_strapFilterComboBox, m_pDbManager->m_strapMap);
+    updateComboBox(ui->m_loadTypeFilterComboBox, m_pDbManager->m_loadTypeMap);
+    updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
 }
 
 void MainWindow::setupDeviceTable()
@@ -330,13 +350,14 @@ void MainWindow::populateRoundModel(const QVector<RoundDto> &roundList)
     }
 
     ui->m_roundTreeView->expandAll();
-    ui->m_roundTreeView->resizeColumnToContents(0);
+    int columnWidth = ui->m_roundTreeView->columnWidth(0);
+    // ui->m_roundTreeView->setFixedWidth(columnWidth);
 }
 
 void MainWindow::readRoundTable()
 {
-    QVector<RoundDto> roundList = m_pDbManager->getRoundList();
-    populateRoundModel(roundList);
+    m_pDbManager->reloadRound();
+    populateRoundModel(m_pDbManager->m_roundList);
 }
 
 void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
@@ -363,6 +384,7 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
             }
             updateAreaModel(area, index.row());
             m_pDbManager->reloadAreaTable();
+            updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
         }
         else
         {
@@ -373,6 +395,7 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
             }
             updateAreaModel(area);
             m_pDbManager->reloadAreaTable();
+            updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
         }
     }
     ui->m_tableViewArea->resizeColumnsToContents();
@@ -420,6 +443,7 @@ void MainWindow::onDeleteButtonAreaClicked(QModelIndex index)
 
     m_areaModel->removeRow(index.row());
     m_pDbManager->reloadAreaTable();
+    updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
 }
 
 void MainWindow::onModifyButtonAreaClicked(QModelIndex index)
@@ -464,7 +488,7 @@ void MainWindow::onRoundSelectionModelChanged(const QItemSelection &selected, co
     {
         QModelIndex index = selectedIndexes.first();
 
-        QString areaName = m_pDbManager->m_areaIdNameMap.value(m_roundModel->sibling(index.row(), 2, index).data().toInt(), QString::fromLocal8Bit("未知"));
+        QString areaName = m_pDbManager->m_allAreaIdNameMap.value(m_roundModel->sibling(index.row(), 2, index).data().toInt(), QString::fromLocal8Bit("未知"));
         ui->m_roundAreaLineEdit->setText(areaName);
 
         QString funcType = m_pDbManager->m_roundFuncTypeMap.value(m_roundModel->sibling(index.row(), 3, index).data().toInt(), QString::fromLocal8Bit("未知"));
@@ -546,7 +570,7 @@ void MainWindow::populateRoundData(QList<QPair<QString, QVariant>> &data, const 
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("名称"), QString::fromLocal8Bit(round.name)));
     ComboBoxData<int> comboBoxArea;
     comboBoxArea.currentValue = round.areaId;
-    comboBoxArea.options = m_pDbManager->m_areaIdNameMap;
+    comboBoxArea.options = m_pDbManager->m_allAreaIdNameMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("所属地区"), QVariant::fromValue(comboBoxArea)));
     ComboBoxData<int> comboBoxFunc;
     comboBoxFunc.currentValue = round.funcType;
@@ -656,6 +680,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
             }
             updateRoundModel(round, index);
             m_pDbManager->reloadRound();
+            updateComboBox(ui->m_roundFilterComboBox, m_pDbManager->m_roundIdNameMap);
             QItemSelection newSelection(index, index);
             onRoundSelectionModelChanged(newSelection, QItemSelection());
         }
@@ -668,6 +693,7 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
             }
             updateRoundModel(round, QModelIndex());
             m_pDbManager->reloadRound();
+            updateComboBox(ui->m_roundFilterComboBox, m_pDbManager->m_roundIdNameMap);
             QStandardItem *rootItem = m_roundModel->item(0);
             QModelIndex newIndex = rootItem->child(rootItem->rowCount() - 1, 0)->index();
             ui->m_roundTreeView->setCurrentIndex(newIndex);
@@ -747,6 +773,7 @@ void MainWindow::onDeleteRoundActionTriggered()
     }
     m_roundModel->itemFromIndex(currentIndex.parent())->removeRow(currentIndex.row());
     m_pDbManager->reloadRound();
+    updateComboBox(ui->m_roundFilterComboBox, m_pDbManager->m_roundIdNameMap);
 }
 
 void MainWindow::readRoundItemTable(int roundId)
@@ -815,7 +842,7 @@ void MainWindow::populateRoundItemData(QList<QPair<QString, QVariant>> &data, co
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("名称"), QString::fromLocal8Bit(item.name)));
     ComboBoxData<int> comboBoxArea;
     comboBoxArea.currentValue = item.areaId;
-    comboBoxArea.options = m_pDbManager->m_areaIdNameMap;
+    comboBoxArea.options = m_pDbManager->m_subAreaIdNameMap;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("所属分区"), QVariant::fromValue(comboBoxArea)));
 
     ComboBoxData<int> comboBoxRound;
@@ -965,30 +992,33 @@ void MainWindow::updateRoundItemModel(const RoundItemDto &newRoundItem, int row)
     m_roundItemModel->setItem(row, 9, new QStandardItem(QString::number(newRoundItem.deviceId)));
 }
 
-void MainWindow::onDetailButtonRoundItemClicked(QModelIndex index)
+void MainWindow::onDetailButtonRoundItemClicked(QModelIndex proxyIndex)
 {
+    QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+
     RoundItemDto item;
     memset(&item, 0, sizeof(item));
-    item.id = m_roundItemModel->index(index.row(), 0).data().toInt();
-    strncpy(item.name, m_roundItemModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(item.name) - 1);
-    item.areaId = m_roundItemModel->index(index.row(), 2).data().toInt();
-    item.roundId = m_roundItemModel->index(index.row(), 3).data().toInt();
-    strncpy(item.linkedLine, m_roundItemModel->index(index.row(), 4).data().toString().toLocal8Bit().data(), sizeof(item.linkedLine) - 1);
-    item.loadType = m_roundItemModel->index(index.row(), 5).data().toInt();
-    item.strapPlan = m_roundItemModel->index(index.row(), 6).data().toInt();
-    strncpy(item.linkedBreak, m_roundItemModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
-    strncpy(item.pName, m_roundItemModel->index(index.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
-    item.deviceId = m_roundItemModel->index(index.row(), 9).data().toInt();
+    item.id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
+    strncpy(item.name, m_roundItemModel->index(sourceIndex.row(), 1).data().toString().toLocal8Bit().data(), sizeof(item.name) - 1);
+    item.areaId = m_roundItemModel->index(sourceIndex.row(), 2).data().toInt();
+    item.roundId = m_roundItemModel->index(sourceIndex.row(), 3).data().toInt();
+    strncpy(item.linkedLine, m_roundItemModel->index(sourceIndex.row(), 4).data().toString().toLocal8Bit().data(), sizeof(item.linkedLine) - 1);
+    item.loadType = m_roundItemModel->index(sourceIndex.row(), 5).data().toInt();
+    item.strapPlan = m_roundItemModel->index(sourceIndex.row(), 6).data().toInt();
+    strncpy(item.linkedBreak, m_roundItemModel->index(sourceIndex.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
+    strncpy(item.pName, m_roundItemModel->index(sourceIndex.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
+    item.deviceId = m_roundItemModel->index(sourceIndex.row(), 9).data().toInt();
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
 
-    showRoundItemDialog(data, CommonFormDialog::TYPE_DETAIL, index);
+    showRoundItemDialog(data, CommonFormDialog::TYPE_DETAIL, sourceIndex);
 }
 
-void MainWindow::onDeleteButtonRoundItemClicked(QModelIndex index)
+void MainWindow::onDeleteButtonRoundItemClicked(QModelIndex proxyIndex)
 {
-    int id = m_roundItemModel->index(index.row(), 0).data().toInt();
+    QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+    int id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
 
     QMessageBox::StandardButton reply;
     reply = QMessageBox::question(this,
@@ -1005,28 +1035,30 @@ void MainWindow::onDeleteButtonRoundItemClicked(QModelIndex index)
         return;
     }
 
-    m_roundItemModel->removeRow(index.row());
+    m_roundItemModel->removeRow(sourceIndex.row());
 }
 
-void MainWindow::onModifyButtonRoundItemClicked(QModelIndex index)
+void MainWindow::onModifyButtonRoundItemClicked(QModelIndex proxyIndex)
 {
+    QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+
     RoundItemDto item;
     memset(&item, 0, sizeof(item));
-    item.id = m_roundItemModel->index(index.row(), 0).data().toInt();
-    strncpy(item.name, m_roundItemModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(item.name) - 1);
-    item.areaId = m_roundItemModel->index(index.row(), 2).data().toInt();
-    item.roundId = m_roundItemModel->index(index.row(), 3).data().toInt();
-    strncpy(item.linkedLine, m_roundItemModel->index(index.row(), 4).data().toString().toLocal8Bit().data(), sizeof(item.linkedLine) - 1);
-    item.loadType = m_roundItemModel->index(index.row(), 5).data().toInt();
-    item.strapPlan = m_roundItemModel->index(index.row(), 6).data().toInt();
-    strncpy(item.linkedBreak, m_roundItemModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
-    strncpy(item.pName, m_roundItemModel->index(index.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
-    item.deviceId = m_roundItemModel->index(index.row(), 9).data().toInt();
+    item.id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
+    strncpy(item.name, m_roundItemModel->index(sourceIndex.row(), 1).data().toString().toLocal8Bit().data(), sizeof(item.name) - 1);
+    item.areaId = m_roundItemModel->index(sourceIndex.row(), 2).data().toInt();
+    item.roundId = m_roundItemModel->index(sourceIndex.row(), 3).data().toInt();
+    strncpy(item.linkedLine, m_roundItemModel->index(sourceIndex.row(), 4).data().toString().toLocal8Bit().data(), sizeof(item.linkedLine) - 1);
+    item.loadType = m_roundItemModel->index(sourceIndex.row(), 5).data().toInt();
+    item.strapPlan = m_roundItemModel->index(sourceIndex.row(), 6).data().toInt();
+    strncpy(item.linkedBreak, m_roundItemModel->index(sourceIndex.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
+    strncpy(item.pName, m_roundItemModel->index(sourceIndex.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
+    item.deviceId = m_roundItemModel->index(sourceIndex.row(), 9).data().toInt();
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
 
-    showRoundItemDialog(data, CommonFormDialog::TYPE_MODIFY, index);
+    showRoundItemDialog(data, CommonFormDialog::TYPE_MODIFY, sourceIndex);
 }
 
 void MainWindow::readDeviceTable()
@@ -1124,6 +1156,7 @@ void MainWindow::onDeleteButtonDeviceClicked(QModelIndex index)
     m_deviceModel->removeRow(index.row());
     m_deviceParaModel->removeRows(0, m_deviceParaModel->rowCount());
     m_pDbManager->reloadDevice();
+    updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
 }
 
 void MainWindow::populateDeviceData(QList<QPair<QString, QVariant>> &data, const DeviceDto &device)
@@ -1183,6 +1216,7 @@ void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, i
             }
             updateDeviceModel(device, index.row());
             m_pDbManager->reloadDevice();
+            updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
         }
         else
         {
@@ -1193,6 +1227,7 @@ void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, i
             }
             updateDeviceModel(device);
             m_pDbManager->reloadDevice();
+            updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
         }
     }
     ui->m_tableViewDevice->resizeColumnsToContents();
@@ -1498,7 +1533,7 @@ void MainWindow::onDeleteButtonDeviceParaClicked(QModelIndex index)
 void MainWindow::showRoundItemContextMenu(const QPoint &pos)
 {
     m_setAreaMenu->clear();
-    for (auto iArea : m_pDbManager->m_areaIdNameMap.toStdMap())
+    for (auto iArea : m_pDbManager->m_subAreaIdNameMap.toStdMap())
     {
         addActionToMenu(m_setAreaMenu, iArea.first, iArea.second, SLOT(onSetArea()));
     }
@@ -1545,9 +1580,10 @@ void MainWindow::onSetArea()
         return;
 
     // Update database and model
-    for (const QModelIndex &rowIndex : selectedRows)
+    for (const QModelIndex &proxyIndex : selectedRows)
     {
-        int id = m_roundItemModel->index(rowIndex.row(), 0).data().toInt();
+        QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+        int id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
         QString sql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 所属分区=%1 where 编号=%2")
                           .arg(newAreaId)
                           .arg(id);
@@ -1557,8 +1593,9 @@ void MainWindow::onSetArea()
             QMessageBox::warning(this, QString::fromLocal8Bit("更新失败"), QString::fromLocal8Bit("更新失败"));
             return;
         }
-        m_roundItemModel->setItem(rowIndex.row(), 2, new QStandardItem(QString::number(newAreaId)));
+        m_roundItemModel->setItem(sourceIndex.row(), 2, new QStandardItem(QString::number(newAreaId)));
     }
+    ui->m_roundItemTableView->resizeColumnsToContents();
 }
 
 void MainWindow::onSetDevice()
@@ -1581,9 +1618,10 @@ void MainWindow::onSetDevice()
     }
 
     // 更新数据库 更新模型
-    for (const QModelIndex &rowIndex : selectedRows)
+    for (const QModelIndex &proxyIndex : selectedRows)
     {
-        int id = m_roundItemModel->index(rowIndex.row(), 0).data().toInt();
+        QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+        int id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
         QString sql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 关联装置=%1 where 编号=%2")
                           .arg(newDeviceId)
                           .arg(id);
@@ -1593,8 +1631,9 @@ void MainWindow::onSetDevice()
             QMessageBox::warning(this, QString::fromLocal8Bit("更新失败"), QString::fromLocal8Bit("更新失败"));
             return;
         }
-        m_roundItemModel->setItem(rowIndex.row(), 9, new QStandardItem(newDeviceId));
+        m_roundItemModel->setItem(sourceIndex.row(), 9, new QStandardItem(newDeviceId));
     }
+    ui->m_roundItemTableView->resizeColumnsToContents();
 }
 
 void MainWindow::onSetRound()
@@ -1610,9 +1649,10 @@ void MainWindow::onSetRound()
         return;
 
     // Update database and model
-    for (const QModelIndex &rowIndex : selectedRows)
+    for (const QModelIndex &proxyIndex : selectedRows)
     {
-        int id = m_roundItemModel->index(rowIndex.row(), 0).data().toInt();
+        QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+        int id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
         QString sql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 所属轮次=%1 where 编号=%2")
                           .arg(newRoundId)
                           .arg(id);
@@ -1622,8 +1662,9 @@ void MainWindow::onSetRound()
             QMessageBox::warning(this, QString::fromLocal8Bit("更新失败"), QString::fromLocal8Bit("更新失败"));
             return;
         }
-        m_roundItemModel->setItem(rowIndex.row(), 3, new QStandardItem(QString::number(newRoundId)));
+        m_roundItemModel->setItem(sourceIndex.row(), 3, new QStandardItem(QString::number(newRoundId)));
     }
+    ui->m_roundItemTableView->resizeColumnsToContents();
 }
 
 void MainWindow::onSetStrap()
@@ -1639,9 +1680,10 @@ void MainWindow::onSetStrap()
         return;
 
     // Update database and model
-    for (const QModelIndex &rowIndex : selectedRows)
+    for (const QModelIndex &proxyIndex : selectedRows)
     {
-        int id = m_roundItemModel->index(rowIndex.row(), 0).data().toInt();
+        QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+        int id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
         QString sql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 投退计划=%1 where 编号=%2")
                           .arg(strapId)
                           .arg(id);
@@ -1651,8 +1693,9 @@ void MainWindow::onSetStrap()
             QMessageBox::warning(this, QString::fromLocal8Bit("更新失败"), QString::fromLocal8Bit("更新失败"));
             return;
         }
-        m_roundItemModel->setItem(rowIndex.row(), 6, new QStandardItem(QString::number(strapId)));
+        m_roundItemModel->setItem(sourceIndex.row(), 6, new QStandardItem(QString::number(strapId)));
     }
+    ui->m_roundItemTableView->resizeColumnsToContents();
 }
 
 void MainWindow::onSetLoadType()
@@ -1668,9 +1711,10 @@ void MainWindow::onSetLoadType()
         return;
 
     // Update database and model
-    for (const QModelIndex &rowIndex : selectedRows)
+    for (const QModelIndex &proxyIndex : selectedRows)
     {
-        int id = m_roundItemModel->index(rowIndex.row(), 0).data().toInt();
+        QModelIndex sourceIndex = m_roundItemProxyModel->mapToSource(proxyIndex);
+        int id = m_roundItemModel->index(sourceIndex.row(), 0).data().toInt();
         QString sql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 负荷类型=%1 where 编号=%2")
                           .arg(loadType)
                           .arg(id);
@@ -1680,13 +1724,16 @@ void MainWindow::onSetLoadType()
             QMessageBox::warning(this, QString::fromLocal8Bit("更新失败"), QString::fromLocal8Bit("更新失败"));
             return;
         }
-        m_roundItemModel->setItem(rowIndex.row(), 5, new QStandardItem(QString::number(loadType)));
+        m_roundItemModel->setItem(sourceIndex.row(), 5, new QStandardItem(QString::number(loadType)));
     }
+    ui->m_roundItemTableView->resizeColumnsToContents();
 }
 
 void MainWindow::updateComboBox(QComboBox *comboBox, const QMap<int, QString> &map)
 {
     comboBox->clear(); // 清除旧的内容
+
+    comboBox->addItem(QString::fromLocal8Bit("全部"), -1);
 
     QMapIterator<int, QString> i(map);
     while (i.hasNext())
@@ -1694,4 +1741,32 @@ void MainWindow::updateComboBox(QComboBox *comboBox, const QMap<int, QString> &m
         i.next();
         comboBox->addItem(i.value(), i.key());
     }
+}
+
+void MainWindow::updateRoundItemFilter(int index)
+{
+    QComboBox *comboBox = qobject_cast<QComboBox *>(sender());
+    if (!comboBox)
+        return;
+
+    int currentData = comboBox->itemData(index).toInt();
+    QString filterType = comboBox->property("filterType").toString();
+
+    if (filterType == "area")
+        m_roundItemProxyModel->setAreaFilter(currentData);
+    else if (filterType == "round")
+        m_roundItemProxyModel->setRoundFilter(currentData);
+    else if (filterType == "loadType")
+        m_roundItemProxyModel->setLoadTypeFilter(currentData);
+    else if (filterType == "strap")
+        m_roundItemProxyModel->setStrapFilter(currentData);
+    else if (filterType == "device")
+        m_roundItemProxyModel->setDeviceFilter(currentData);
+}
+
+void MainWindow::updateDeviceOptions(int index)
+{
+    int currentArea = ui->m_areaFilterComboBox->itemData(index).toInt();
+    QMap<int, QString> newDeviceOptions = m_pDbManager->getDeviceOptionsForArea(currentArea);
+    updateComboBox(ui->m_deviceFilterComboBox, newDeviceOptions);
 }

@@ -6,9 +6,11 @@
 #include <QStandardItemModel>
 #include <QItemSelection>
 #include <QComboBox>
+#include <QSortFilterProxyModel>
 
 #include "dfjson/json.h"
 #include "dto.h"
+#include "dzjzconfigutil.h"
 
 class QListWidgetItem;
 class OperationDelegate;
@@ -93,6 +95,8 @@ private slots:
     void onDetailButtonRoundItemClicked(QModelIndex index);
     void onDeviceTableRowSelected(const QModelIndex &index);
     void showRoundItemContextMenu(const QPoint &pos);
+    void updateRoundItemFilter(int index);
+    void updateDeviceOptions(int index);
 
     void onAddDeviceButtonClicked();
     void onDetailButtonDeviceClicked(QModelIndex index);
@@ -120,6 +124,7 @@ private:
     QStandardItemModel *m_roundModel;
 
     QStandardItemModel *m_roundItemModel;
+    RoundItemFilterProxyModel *m_roundItemProxyModel;
     OperationDelegate *m_BtnDelegateRoundItem;
 
     QStandardItemModel *m_deviceModel;

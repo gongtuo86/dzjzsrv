@@ -135,7 +135,8 @@ int DBManager::insertAreaTable(const AreaVo &area)
 void DBManager::reloadAreaTable()
 {
     m_areaList = getAreaVoList();
-    m_areaIdNameMap = getAreaIdNameMap(m_areaList);
+    m_allAreaIdNameMap = getAreaIdNameMap(m_areaList, 1);
+    m_subAreaIdNameMap = getAreaIdNameMap(m_areaList, 2);
 }
 
 int DBManager::insertRoundTable(const RoundDto &round)
@@ -196,12 +197,15 @@ int DBManager::getMaxIDFromDataBase(const char *tableName)
     return nOrder;
 }
 
-QMap<int, QString> DBManager::getAreaIdNameMap(const QVector<AreaVo> &areas)
+QMap<int, QString> DBManager::getAreaIdNameMap(const QVector<AreaVo> &areas, int type)
 {
     QMap<int, QString> areaMap;
     for (const AreaVo &area : areas)
     {
-        areaMap[area.id] = QString::fromLocal8Bit(area.name);
+        if (area.type == type)
+        {
+            areaMap[area.id] = QString::fromLocal8Bit(area.name);
+        }
     }
     return areaMap;
 }
@@ -786,4 +790,24 @@ int DBManager::updateRoundItemCount(int deviceId, int nCount)
     sprintf(func.isql, "update xopensdb.低周减载装置参数表 set 关联轮次项数=%d where 编号=%d", nCount, deviceId);
 
     return dbfisqlcommand(&func);
+}
+
+QMap<int, QString> DBManager::getDeviceOptionsForArea(int areaId)
+{
+    QMap<int, QString> map;
+    for (const auto &area : m_areaList)
+    {
+        if (areaId == area.id)
+        {
+            for (const auto &device : m_deviceList)
+            {
+                if (strcmp(area.staId, device.staId) == 0)
+                {
+                    map[device.id] = QString::fromLocal8Bit(device.name);
+                }
+            }
+        }
+    }
+
+    return map;
 }
