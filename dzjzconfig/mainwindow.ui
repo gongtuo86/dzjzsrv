@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1394</width>
-    <height>833</height>
+    <width>1643</width>
+    <height>1038</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -243,6 +243,80 @@
             </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout">
+              <item>
+               <widget class="QLabel" name="label">
+                <property name="text">
+                 <string>所属分区:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="m_areaFilterComboBox"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string>所属轮次:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="m_roundFilterComboBox"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_9">
+                <property name="text">
+                 <string>负荷类型:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="m_loadTypeFilterComboBox"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>投退计划:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="m_strapFilterComboBox"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_11">
+                <property name="text">
+                 <string>关联装置:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="m_deviceFilterLineEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_12">
+                <property name="text">
+                 <string>名称:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="m_nameFilterLineEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
               <item>
                <spacer name="horizontalSpacer_4">
                 <property name="orientation">

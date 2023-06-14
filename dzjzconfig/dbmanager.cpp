@@ -1,8 +1,10 @@
 #include "dbmanager.h"
 
 #include <QMap>
+#include <QDebug>
 
 #include "dto.h"
+#include "dzjzconfigutil.h"
 
 DBManager::DBManager(QObject *parent) : QObject(parent)
 {
@@ -14,30 +16,34 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
     m_deviceFuncTypeMap = getDMConfig("低周减载装置功能类型");
     m_roundTypeMap = getRoundTypeMap();
     m_staIdNameMap = getStaIdNameMap();
-    m_roundIdNameMap = getRoundIdNameMap();
-    m_areaIdNameMap = getAreaIdNameMap();
+
+    reloadRound();
+
+    reloadAreaTable();
 
     m_lineList = getLineList();
     m_lineIdNameMap = getLineIdNameMap(m_lineList);
+    m_lineJson = getLineJson(m_lineList);
 
     m_breakerList = getBreakList();
     m_breakIdNameMap = getBreakerIdNameMap(m_breakerList);
+    m_breakerJson = getBreakerJson(m_breakerList);
 
     m_rtuList = getRtuList();
     m_rtuIdNameMap = getRtuIdNameMap(m_rtuList);
+    m_rtuJson = getRtuJson(m_rtuList);
 
-    m_deviceList = getDeviceList();
-    m_deviceIdNameMap = getDeviceIdNameMap(m_deviceList);
+    reloadDevice();
 
     m_tmList = getTMList();
     m_tmIdNameMap = getTMNameMap(m_tmList);
     m_tmJson = getTMJson(m_tmList);
-}
 
-QVector<AreaDto> DBManager::getAreaList()
-{
-    QString query = QString::fromLocal8Bit("select 编号,名称,类型 from xopensdb.dbo.低周减载区域参数表");
-    return getList<AreaDto>(query);
+    m_tsList = getTSList();
+    m_tsIdNameMap = getTSNameMap(m_tsList);
+    m_tsJson = getTSJson(m_tsList);
+
+    reloadFixValue();
 }
 
 QVector<AreaVo> DBManager::getAreaVoList()
@@ -126,6 +132,12 @@ int DBManager::insertAreaTable(const AreaVo &area)
     return insertTable(areaSubStationDto, "xopensdb.低周减载区域厂站关联表");
 }
 
+void DBManager::reloadAreaTable()
+{
+    m_areaList = getAreaVoList();
+    m_areaIdNameMap = getAreaIdNameMap(m_areaList);
+}
+
 int DBManager::insertRoundTable(const RoundDto &round)
 {
     return insertTable(round, "xopensdb.dbo.低周减载轮次参数表");
@@ -139,9 +151,14 @@ int DBManager::updateRoundTable(const RoundDto &round)
 QVector<RoundItemDto> DBManager::getRoundItemList(int roundId)
 {
     QString query = QString::fromLocal8Bit(
-                        "select 编号,名称,所属分区,所属轮次,关联馈线,负荷类型,投退计划,关联开关,有功代码,关联装置"
-                        " from xopensdb.低周减载轮次项参数表 where 所属轮次=%1")
-                        .arg(roundId);
+        "select 编号,名称,所属分区,所属轮次,关联馈线,负荷类型,投退计划,关联开关,有功代码,关联装置"
+        " from xopensdb.低周减载轮次项参数表 where 1=1");
+
+    if (roundId > 0)
+    {
+        query += QString::fromLocal8Bit(" and 所属轮次=%1").arg(roundId);
+    }
+
     return getList<RoundItemDto>(query);
 }
 
@@ -154,7 +171,7 @@ QVector<RoundItemDto> DBManager::getRoundItemList(int roundId)
 int DBManager::getMaxIDFromDataBase(const char *tableName)
 {
     int i = 0;
-    int nOrder = 0;
+    int nOrder = 1;
     FUNC_STR func;
     CS_FLOAT *p = NULL;
     memset(&func, 0, sizeof(FUNC_STR));
@@ -179,20 +196,18 @@ int DBManager::getMaxIDFromDataBase(const char *tableName)
     return nOrder;
 }
 
-QMap<int, QString> DBManager::getAreaIdNameMap()
+QMap<int, QString> DBManager::getAreaIdNameMap(const QVector<AreaVo> &areas)
 {
-    QVector<AreaDto> areas = getAreaList();
     QMap<int, QString> areaMap;
-    for (const AreaDto &area : areas)
+    for (const AreaVo &area : areas)
     {
         areaMap[area.id] = QString::fromLocal8Bit(area.name);
     }
     return areaMap;
 }
 
-QMap<int, QString> DBManager::getRoundIdNameMap()
+QMap<int, QString> DBManager::getRoundIdNameMap(const QVector<RoundDto> &list)
 {
-    QVector<RoundDto> list = DBManager::getRoundList();
     QMap<int, QString> map;
     for (const RoundDto &item : list)
     {
@@ -263,9 +278,36 @@ QMap<QString, QString> DBManager::getLineIdNameMap(const QVector<LineDto> &lines
     return lineIdNameMap;
 }
 
-void DBManager::reloadRoundIdNameMap()
+void DBManager::reloadRound()
 {
-    m_roundIdNameMap = getRoundIdNameMap();
+    m_roundList = getRoundList();
+    m_roundIdNameMap = getRoundIdNameMap(m_roundList);
+}
+
+int DBManager::updateTable(const QString &sql)
+{
+    FUNC_STR func;
+    CS_DATAFMT *datafmt = NULL;
+
+    memset(&func, 0, sizeof(FUNC_STR));
+    func.serverno = SERVER_DEFAULT;
+    func.func = ISQL_COMMAND;
+    sprintf(func.isql, "%s", sql.toLocal8Bit().data());
+
+    return dbfisqlcommand(&func);
+}
+
+int DBManager::deleteRoundTable(int id)
+{
+    QString sql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 所属轮次=0 where 所属轮次=%1").arg(id);
+
+    if (updateTable(sql) != CS_SUCCEED)
+        return CS_FAIL;
+
+    if (deleteTable(id, "xopensdb.dbo.低周减载轮次参数表") != CS_SUCCEED)
+        return CS_FAIL;
+
+    return CS_SUCCEED;
 }
 
 QVector<DeviceDto> DBManager::getDeviceList()
@@ -322,18 +364,29 @@ QVector<DeviceParaDto> DBManager::getDeviceParaList(int id)
     return getList<DeviceParaDto>(query);
 }
 
-QVector<FixValueDto> DBManager::getFixValueList(int rtuNo)
+QVector<FixValueDto> DBManager::getFixValueList()
 {
     QString query = QString::fromLocal8Bit(
-                        "select 装置类型,组号,序号,描述 from xopensdb.低周减载装置定值信息表 where RTU号=%1"
-                        " order by 装置类型,组号,序号")
-                        .arg(rtuNo);
+        "select RTU号,装置类型,组号,序号,描述 from xopensdb.低周减载装置定值信息表 order by 装置类型,组号,序号");
     return getList<FixValueDto>(query);
+}
+
+int DBManager::deleteDeviceParaTable(int deviceId, int roundId)
+{
+    FUNC_STR func;
+    CS_DATAFMT *datafmt = NULL;
+
+    memset(&func, 0, sizeof(FUNC_STR));
+    func.serverno = SERVER_DEFAULT;
+    func.func = ISQL_COMMAND;
+    sprintf(func.table, "%s", "xopensdb.低周减载装置参数设定表");
+    sprintf(func.isql, "delete from xopensdb.低周减载装置参数设定表 where 所属装置=%d and 轮次编号=%d", deviceId, roundId);
+    return dbfisqlcommand(&func);
 }
 
 int DBManager::updateDeviceParaTable(const DeviceParaDto &devicePara)
 {
-    if (deleteTable(devicePara.id, "xopensdb.dbo.低周减载装置参数设定表", "所属装置") != CS_SUCCEED)
+    if (deleteDeviceParaTable(devicePara.id, devicePara.no) != CS_SUCCEED)
         return CS_FAIL;
 
     return insertTable(devicePara, "xopensdb.dbo.低周减载装置参数设定表");
@@ -369,13 +422,14 @@ QMap<int, QString> DBManager::getDeviceIdNameMap(const QVector<DeviceDto> &list)
 void DBManager::reloadDevice()
 {
     m_deviceList = getDeviceList();
-    m_roundIdNameMap = getDeviceIdNameMap(m_deviceList);
+    m_deviceIdNameMap = getDeviceIdNameMap(m_deviceList);
+    m_deviceJson = getDeviceJson(m_deviceList);
 }
 
 QVector<TMDto> DBManager::getTMList()
 {
     QString query = QString::fromLocal8Bit(
-        "select a.代码,a.描述, a.厂站代码, b.名称 from 遥测参数表 a, 厂站参数表 b "
+        "select a.代码,a.描述, a.厂站代码,b.名称 from 遥测参数表 a, 厂站参数表 b "
         "where a.厂站代码=b.编号");
 
     return getList<TMDto>(query);
@@ -433,4 +487,303 @@ dfJson::Value DBManager::getTMJson(const QVector<TMDto> &list)
     // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
 
     return root;
+}
+
+QVector<TSDto> DBManager::getTSList()
+{
+    QString query = QString::fromLocal8Bit(
+        "select a.代码,a.描述,a.厂站代码,b.名称,a.RTU号,c.描述 from 遥信参数表 a,"
+        "厂站参数表 b, RTU参数表 c where a.厂站代码=b.编号 and a.RTU号=c.序号 order by a.RTU号, a.YX号");
+
+    return getList<TSDto>(query);
+}
+
+QMap<QString, QString> DBManager::getTSNameMap(const QVector<TSDto> &list)
+{
+    QMap<QString, QString> map;
+
+    for (const auto &ts : list)
+    {
+        map[ts.id] = QString::fromLocal8Bit(ts.name);
+    }
+    return map;
+}
+
+dfJson::Value DBManager::getTSJson(const QVector<TSDto> &list)
+{
+    QMap<QString, dfJson::Value> substations;
+    QMap<QString, QMap<int, dfJson::Value>> rtus;
+
+    for (const auto &ts : list)
+    {
+        QString staId = QString::fromLocal8Bit(ts.staId);
+        int rtuNo = ts.rtuNo;
+
+        if (substations.find(staId) == substations.end())
+        {
+            substations[staId]["id"] = ts.staId;
+            substations[staId]["name"] = ts.staName;
+            substations[staId]["type"] = "substation";
+        }
+
+        if (rtus[staId].find(rtuNo) == rtus[staId].end())
+        {
+            rtus[staId][rtuNo]["id"] = QString::number(ts.rtuNo).toLocal8Bit().data();
+            rtus[staId][rtuNo]["name"] = ts.rtuName;
+            rtus[staId][rtuNo]["type"] = "rtu";
+        }
+
+        dfJson::Value tsJson;
+        tsJson["id"] = ts.id;
+        tsJson["name"] = ts.name;
+        tsJson["type"] = "ts";
+        rtus[staId][rtuNo]["children"].append(tsJson);
+    }
+
+    for (auto it = substations.begin(); it != substations.end(); ++it)
+    {
+        QString staId = it.key();
+        for (auto itRtu = rtus[staId].begin(); itRtu != rtus[staId].end(); ++itRtu)
+        {
+            it.value()["children"].append(itRtu.value());
+        }
+    }
+
+    dfJson::Value root;
+    for (auto it = substations.begin(); it != substations.end(); ++it)
+    {
+        root.append(it.value());
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+dfJson::Value DBManager::getRtuJson(const QVector<RtuDto> &rtus)
+{
+    QMap<QString, QVector<RtuDto>> stationMap;
+
+    // 将所有线路按变电站 ID 分类
+    for (const auto &rtu : rtus)
+    {
+        stationMap[QString::fromLocal8Bit(rtu.staId)].push_back(rtu);
+    }
+
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+
+    QMap<QString, QVector<RtuDto>>::iterator it;
+    for (it = stationMap.begin(); it != stationMap.end(); ++it)
+    {
+        // 变电站
+        dfJson::Value station(dfJson::objectValue);    // 创建一个空的Json对象
+        station["id"] = it.key().toLocal8Bit().data(); // 变电站 ID
+        station["name"] = it.value().first().staName;  // 变电站名称
+        station["type"] = "substation";                // 变电站类型
+
+        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+
+        // 线路
+        for (const auto &rtu : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue);                   // 创建一个空的Json对象
+            child["id"] = QString::number(rtu.id).toLocal8Bit().data(); // 线路 ID
+            child["name"] = rtu.name;                                   // 线路名称
+            child["type"] = "rtu";                                      // 线路类型
+            children.append(child);
+        }
+
+        station["children"] = children;
+        root.append(station);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+dfJson::Value DBManager::getFixValueJson(int id)
+{
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue);
+
+    for (const auto &fixValue : m_fixValueList)
+    {
+        if (fixValue.rtuNo != id)
+            continue;
+        dfJson::Value child(dfJson::objectValue);
+        child["id"] = QString("%1:%2:%3").arg(fixValue.type).arg(fixValue.groupNo).arg(fixValue.no).toLocal8Bit().data();
+        child["name"] = fixValue.name;
+        child["type"] = "fixvalue";
+        root.append(child);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+QMap<QString, QString> DBManager::getFixValuMap(const QVector<FixValueDto> &list)
+{
+    QMap<QString, QString> map;
+    for (const auto &fixValue : list)
+    {
+        QString qsKey = QString("%1:%2:%3").arg(fixValue.type).arg(fixValue.groupNo).arg(fixValue.no).toLocal8Bit().data();
+        QString qsValue = QString::fromLocal8Bit(fixValue.name);
+        map.insert(qsKey, qsValue);
+    }
+
+    return map;
+}
+
+void DBManager::reloadFixValue()
+{
+    m_fixValueList = getFixValueList();
+    m_fixValueMap = getFixValuMap(m_fixValueList);
+}
+
+dfJson::Value DBManager::getBreakerJson(const QVector<BreakDto> &breakers)
+{
+    QMap<QString, QVector<BreakDto>> stationMap;
+
+    // 将所有线路按变电站 ID 分类
+    for (const auto &breaker : breakers)
+    {
+        // qDebug("line.staName=%s line.name=%s", line.staName, line.name);
+        stationMap[QString::fromLocal8Bit(breaker.staId)].push_back(breaker);
+    }
+
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+
+    QMap<QString, QVector<BreakDto>>::iterator it;
+    for (it = stationMap.begin(); it != stationMap.end(); ++it)
+    {
+        // 变电站
+        dfJson::Value station(dfJson::objectValue);    // 创建一个空的Json对象
+        station["id"] = it.key().toLocal8Bit().data(); // 变电站 ID
+        station["name"] = it.value().first().staName;  // 变电站名称
+        station["type"] = "substation";                // 变电站类型
+
+        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+
+        // 开关
+        for (const auto &breaker : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue); // 创建一个空的Json对象
+            child["id"] = breaker.id;                 // 开关ID
+            child["name"] = breaker.name;             // 开关名称
+            child["type"] = "breaker";                // 开关类型
+            children.append(child);
+        }
+
+        station["children"] = children;
+        root.append(station);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+dfJson::Value DBManager::getDeviceJson(const QVector<DeviceDto> &devices)
+{
+    QMap<QString, QVector<DeviceDto>> stationMap;
+
+    // 将所有线路按变电站 ID 分类
+    for (const auto &device : devices)
+    {
+        stationMap[QString::fromLocal8Bit(device.staId)].push_back(device);
+    }
+
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+
+    QMap<QString, QVector<DeviceDto>>::iterator it;
+    for (it = stationMap.begin(); it != stationMap.end(); ++it)
+    {
+        // 变电站
+        dfJson::Value station(dfJson::objectValue);                                      // 创建一个空的Json对象
+        station["id"] = it.key().toLocal8Bit().data();                                   // 变电站 ID
+        station["name"] = m_staIdNameMap[it.value().first().staId].toLocal8Bit().data(); // 变电站名称
+        station["type"] = "substation";                                                  // 变电站类型
+
+        dfJson::Value children(dfJson::arrayValue);                                      // 创建一个空的Json数组
+
+        // 线路
+        for (const auto &device : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue); // 创建一个空的Json对象
+            child["id"] = QString::number(device.id).toLocal8Bit().data();
+            child["name"] = device.name;
+            child["type"] = "device";
+            children.append(child);
+        }
+
+        station["children"] = children;
+        root.append(station);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+dfJson::Value DBManager::getLineJson(const QVector<LineDto> &lines)
+{
+    QMap<QString, QVector<LineDto>> stationMap;
+
+    // 将所有线路按变电站 ID 分类
+    for (const auto &line : lines)
+    {
+        // qDebug("line.staName=%s line.name=%s", line.staName, line.name);
+        stationMap[QString::fromLocal8Bit(line.staId)].push_back(line);
+    }
+
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+
+    QMap<QString, QVector<LineDto>>::iterator it;
+    for (it = stationMap.begin(); it != stationMap.end(); ++it)
+    {
+        // 变电站
+        dfJson::Value station(dfJson::objectValue);    // 创建一个空的Json对象
+        station["id"] = it.key().toLocal8Bit().data(); // 变电站 ID
+        station["name"] = it.value().first().staName;  // 变电站名称
+        station["type"] = "substation";                // 变电站类型
+
+        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+
+        // 线路
+        for (const auto &line : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue); // 创建一个空的Json对象
+            child["id"] = line.id;                    // 线路 ID
+            child["name"] = line.name;                // 线路名称
+            child["type"] = "line";                   // 线路类型
+            children.append(child);
+        }
+
+        station["children"] = children;
+        root.append(station);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+int DBManager::updateRoundItemCount(int deviceId, int nCount)
+{
+    FUNC_STR func;
+    CS_DATAFMT *datafmt = NULL;
+
+    memset(&func, 0, sizeof(FUNC_STR));
+    func.serverno = SERVER_DEFAULT;
+    func.func = ISQL_COMMAND;
+    sprintf(func.table, "%s", "xopensdb.低周减载装置参数表");
+    sprintf(func.isql, "update xopensdb.低周减载装置参数表 set 关联轮次项数=%d where 编号=%d", nCount, deviceId);
+
+    return dbfisqlcommand(&func);
 }

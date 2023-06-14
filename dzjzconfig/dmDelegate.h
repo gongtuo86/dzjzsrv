@@ -57,7 +57,7 @@ public:
         return QSize(textWidth, textHeight);
     }
 
-private:
+protected:
     QMap<T, QString> &m_valueMap;
 };
 
@@ -77,6 +77,83 @@ class DMDelegateString : public DMDelegateBase<QString>
 public:
     DMDelegateString(QMap<QString, QString> &valueMap, QObject *parent = 0)
         : DMDelegateBase<QString>(valueMap, parent) {}
+};
+
+template <typename T>
+class DMDelegateMulti : public DMDelegateBase<T>
+{
+public:
+    DMDelegateMulti(QMap<T, QString> &valueMap, QObject *parent = 0)
+        : DMDelegateBase<T>(valueMap, parent) {}
+
+    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+    {
+        QStyleOptionViewItemV4 opt = option;
+        this->initStyleOption(&opt, index);
+
+        QStringList idList = index.model()->data(index, Qt::EditRole).toString().split(",");
+        // DFLOG_DEBUG("idList=%s", index.model()->data(index, Qt::EditRole).toString().toLocal8Bit().data());
+        QStringList nameList;
+        for (const QString &id : idList)
+        {
+            // DFLOG_DEBUG("id=%s name=%s", id.toLocal8Bit().data(), this->m_valueMap.value(id, "").toLocal8Bit().data());
+            nameList.append(this->m_valueMap.value(id, QString::fromLocal8Bit("")));
+        }
+        QString text = nameList.join("\n");
+        // DFLOG_DEBUG("nameList=%s", text.toLocal8Bit().data());
+
+        painter->save();
+        painter->setClipRect(opt.rect);
+
+        if (option.state & QStyle::State_Selected)
+        {
+            painter->fillRect(option.rect, option.palette.highlight());
+            painter->setPen(opt.palette.highlightedText().color());
+        }
+        else if (option.state & QStyle::State_MouseOver)
+        {
+            painter->fillRect(option.rect, option.palette.midlight());
+            painter->setPen(opt.palette.text().color());
+        }
+        else
+        {
+            painter->setPen(opt.palette.text().color());
+        }
+
+        painter->drawText(opt.rect, Qt::TextWordWrap, text);
+
+        // opt.text = text;
+        // QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+
+        painter->restore();
+    }
+
+    virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+    {
+        QStringList idList = index.model()->data(index, Qt::EditRole).toString().split(",");
+        QStringList nameList;
+        for (const QString &id : idList)
+        {
+            nameList.append(this->m_valueMap.value(id, QString::fromLocal8Bit("")));
+        }
+        QString text = nameList.join("\n");
+
+        QFontMetrics metrics(option.font);
+        QStringList lines = text.split("\n");
+        int totalHeight = 0;
+        int maxWidth = 0;
+        for (const QString &line : lines)
+        {
+            QRect rect = metrics.boundingRect(line);
+            totalHeight += rect.height();
+            if (rect.width() > maxWidth)
+            {
+                maxWidth = rect.width() + 10;
+            }
+        }
+
+        return QSize(maxWidth, totalHeight);
+    }
 };
 
 #endif

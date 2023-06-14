@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QMap>
 #include <QStandardItemModel>
+#include <QItemSelection>
+#include <QComboBox>
 
 #include "dfjson/json.h"
 #include "dto.h"
@@ -41,7 +43,7 @@ private:
     void populateRoundModel(const QVector<RoundDto> &roundList);
     void populateRoundData(QList<QPair<QString, QVariant>> &data, const RoundDto &round);
     RoundDto extractRoundData(const QList<QPair<QString, QVariant>> &updatedData);
-    void updateRoundModel(const RoundDto &newRound, int row = -1);
+    void updateRoundModel(const RoundDto &newRound, const QModelIndex &index);
     int showRoundDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index);
 
     void setupRoundItemTable();
@@ -68,11 +70,8 @@ private:
     DeviceParaDto extractDeviceParaData(const QList<QPair<QString, QVariant>> &updatedData);
     void updateDeviceParaModel(const DeviceParaDto &newDevice, int row = -1);
 
-    dfJson::Value getRtuJson(const QVector<RtuDto> &rtus);
-    dfJson::Value getLineJson(const QVector<LineDto> &lines);
-    dfJson::Value getBreakerJson(const QVector<BreakDto> &lines);
-    dfJson::Value getDeviceJson(const QVector<DeviceDto> &devices);
-    dfJson::Value getFixValueJson(const QVector<FixValueDto> &fixValues);
+    void addActionToMenu(QMenu *menu, int id, const QString &name, const char *slot);
+    void updateComboBox(QComboBox *comboBox, const QMap<int, QString> &map);
 
 private slots:
     void onModuleItemClicked(QListWidgetItem *item);
@@ -82,7 +81,7 @@ private slots:
     void onModifyButtonAreaClicked(QModelIndex index);
     void onAddButtonAreaClicked();
 
-    void onRoundSelectionModelChanged(const QModelIndex &current);
+    void onRoundSelectionModelChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void showRoundContextMenu(const QPoint &pos);
     void onAddRoundActionTriggered();
     void onModifyRoundActionTriggered();
@@ -93,6 +92,7 @@ private slots:
     void onModifyButtonRoundItemClicked(QModelIndex index);
     void onDetailButtonRoundItemClicked(QModelIndex index);
     void onDeviceTableRowSelected(const QModelIndex &index);
+    void showRoundItemContextMenu(const QPoint &pos);
 
     void onAddDeviceButtonClicked();
     void onDetailButtonDeviceClicked(QModelIndex index);
@@ -103,6 +103,12 @@ private slots:
     void onDetailButtonDeviceParaClicked(QModelIndex index);
     void onModifyButtonDeviceParaClicked(QModelIndex index);
     void onDeleteButtonDeviceParaClicked(QModelIndex index);
+
+    void onSetArea();
+    void onSetRound();
+    void onSetLoadType();
+    void onSetStrap();
+    void onSetDevice();
 
 private:
     Ui::MainWindow *ui;
@@ -123,9 +129,11 @@ private:
     OperationDelegate *m_BtnDelegateDevicePara;
 
     QMenu *m_roundContextMenu;
-    QAction *m_addRoundAction;
-    QAction *m_modifyRoundAction;
-    QAction *m_deleteRoundAction;
+    QMenu *m_roundItemContextMenu;
+    QMenu *m_setAreaMenu;
+    QMenu *m_setRoundMenu;
+    QMenu *m_setStrapMenu;
+    QMenu *m_setLoadTypeMenu;
 };
 
 #endif // MAINWINDOW_H

@@ -130,6 +130,7 @@ public:
 class FixValueDto
 {
 public:
+    qint16 rtuNo;
     qint16 type;
     qint16 groupNo;
     qint16 no;
@@ -143,4 +144,15 @@ public:
     char name[DESCRIBE_LEN];
     char staId[SUBSTATION_LEN];
     char staName[DESCRIBE_LEN];
+};
+
+class TSDto
+{
+public:
+    char id[DEF_CODE_LEN];
+    char name[DESCRIBE_LEN];
+    char staId[SUBSTATION_LEN];
+    char staName[DESCRIBE_LEN];
+    qint16 rtuNo;
+    char rtuName[40];
 };

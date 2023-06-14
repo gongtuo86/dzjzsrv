@@ -38,7 +38,9 @@ void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
     if (dialog.exec() == QDialog::Accepted)
     {
         QStringList ids = dialog.getSelectedIds();
-        setText(ids.join(", "));
+        setText(ids.join(","));
+        emit textChanged(text());
+
 #if 0
         QStringList ids = dialog.getSelectedIds();
         QStringList names = dialog.getSelectedNames();
@@ -55,7 +57,7 @@ void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
         }
 
         m_selectedIds = ids;
-        setText(formattedItems.join(", "));
+        setText(formattedItems.join(","));
 #endif
     }
 }
@@ -178,51 +180,42 @@ QList<QPair<QString, QVariant>> CommonFormDialog::getData()
 {
     QList<QPair<QString, QVariant>> data;
 
-    // 遍历布局中的所有子控件
-    for (int i = 0; i < layout()->count(); ++i)
+    for (auto it = m_controlMap.begin(); it != m_controlMap.end(); ++it)
+
     {
-        QLayoutItem *item = layout()->itemAt(i);
-        if (item->layout())
+        QPair<QString, QVariant> pair;
+        pair.first = it.key();
+        QWidget *widget = it.value();
+        if (widget)
         {
-            // 假设第二个子控件是我们的输入控件
-            QWidget *widget = item->layout()->itemAt(1)->widget();
-            if (widget)
+            if (QSpinBox *spinBox = qobject_cast<QSpinBox *>(widget))
             {
-                QPair<QString, QVariant> pair;
-                // 获取字段的名称
-                pair.first = static_cast<QLabel *>(item->layout()->itemAt(0)->widget())->text();
-
-                // 根据控件的类型获取值
-                if (QSpinBox *spinBox = qobject_cast<QSpinBox *>(widget))
-                {
-                    pair.second = spinBox->value();
-                }
-                else if (QDoubleSpinBox *doubleSpinBox = qobject_cast<QDoubleSpinBox *>(widget))
-                {
-                    pair.second = doubleSpinBox->value();
-                }
-                else if (QDateTimeEdit *dateTimeEdit = qobject_cast<QDateTimeEdit *>(widget))
-                {
-                    pair.second = dateTimeEdit->dateTime();
-                }
-                else if (QComboBox *comboBox = qobject_cast<QComboBox *>(widget))
-                {
-                    pair.second = comboBox->itemData(comboBox->currentIndex(), Qt::UserRole);
-                }
-                else if (JsonDialogLineEdit *jsonDialogLineEdit = qobject_cast<JsonDialogLineEdit *>(widget))
-                {
-                    pair.second = jsonDialogLineEdit->text();
-                }
-                else if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget))
-                {
-                    pair.second = lineEdit->text();
-                }
-
-                data.append(pair);
+                pair.second = spinBox->value();
             }
+            else if (QDoubleSpinBox *doubleSpinBox = qobject_cast<QDoubleSpinBox *>(widget))
+            {
+                pair.second = doubleSpinBox->value();
+            }
+            else if (QDateTimeEdit *dateTimeEdit = qobject_cast<QDateTimeEdit *>(widget))
+            {
+                pair.second = dateTimeEdit->dateTime();
+            }
+            else if (QComboBox *comboBox = qobject_cast<QComboBox *>(widget))
+            {
+                pair.second = comboBox->itemData(comboBox->currentIndex(), Qt::UserRole);
+            }
+            else if (JsonDialogLineEdit *jsonDialogLineEdit = qobject_cast<JsonDialogLineEdit *>(widget))
+            {
+                pair.second = jsonDialogLineEdit->text();
+            }
+            else if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget))
+            {
+                pair.second = lineEdit->text();
+            }
+
+            data.append(pair);
         }
     }
-
     return data;
 }
 
