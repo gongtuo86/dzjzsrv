@@ -811,3 +811,40 @@ QMap<int, QString> DBManager::getDeviceOptionsForArea(int areaId)
 
     return map;
 }
+
+dfJson::Value DBManager::getRoundItemJson()
+{
+    QVector<RoundItemDto> roundItemList = getRoundItemList(-1);
+
+    QMap<int, QVector<RoundItemDto>> areaMap;
+    for (const auto &item : roundItemList)
+    {
+        areaMap[item.areaId].push_back(item);
+    }
+
+    dfJson::Value root(dfJson::arrayValue); // 创建一个空的Json数组
+    QMap<int, QVector<RoundItemDto>>::iterator it;
+    for (it = areaMap.begin(); it != areaMap.end(); ++it)
+    {
+        dfJson::Value area(dfJson::objectValue);                          // 创建一个空的Json对象
+        area["id"] = QString::number(it.key()).toLocal8Bit().data();      // 区域 ID
+        area["name"] = m_subAreaIdNameMap[it.key()].toLocal8Bit().data(); // 区域名称
+        area["type"] = "area";                                            // 区域类型
+
+        dfJson::Value children(dfJson::arrayValue);                       // 创建一个空的Json数组
+
+        for (const auto &item : it.value())
+        {
+            dfJson::Value child(dfJson::objectValue);                    // 创建一个空的Json对象
+            child["id"] = QString::number(item.id).toLocal8Bit().data(); // 轮次项 ID
+            child["name"] = item.name;                                   // 轮次项名称
+            child["type"] = "roundItem";                                 // 轮次项类型
+            children.append(child);
+        }
+
+        area["children"] = children;
+        root.append(area);
+    }
+
+    return root;
+}

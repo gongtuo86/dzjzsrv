@@ -212,6 +212,7 @@
         <file>rc/device.png</file>
         <file>rc/item.png</file>
         <file>rc/add.png</file>
+        <file>rc/edit.png</file>
     </qresource>
     <qresource prefix="/qdarkstyle/light">
         <file>lightstyle.qss</file>

@@ -48,6 +48,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     ui->m_addRoundItemPushButton->setIcon(btnIcon);
     ui->m_addRoundItemPushButton->setIconSize(QSize(32, 32));
 
+    QIcon editBtnIcon = QIcon(":/qss_icons/light/rc/edit.png");
+    ui->m_roundItemEditPushButton->setIcon(editBtnIcon);
+    ui->m_roundItemEditPushButton->setIconSize(QSize(32, 32));
+
     onModuleItemClicked(ui->m_listWidget->item(0));
 }
 
@@ -186,6 +190,7 @@ void MainWindow::setupRoundItemTable()
     connect(m_BtnDelegateRoundItem, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonRoundItemClicked(QModelIndex)));
     ui->m_roundItemTableView->setItemDelegateForColumn(10, m_BtnDelegateRoundItem);
     connect(ui->m_addRoundItemPushButton, SIGNAL(clicked()), this, SLOT(onAddRoundItemButtonClicked()));
+    connect(ui->m_roundItemEditPushButton, SIGNAL(clicked()), this, SLOT(onEditRoundItemButtonClicked()));
 
     ui->m_roundItemTableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->m_roundItemTableView, SIGNAL(customContextMenuRequested(const QPoint &)),
@@ -350,8 +355,9 @@ void MainWindow::populateRoundModel(const QVector<RoundDto> &roundList)
     }
 
     ui->m_roundTreeView->expandAll();
-    int columnWidth = ui->m_roundTreeView->columnWidth(0);
-    // ui->m_roundTreeView->setFixedWidth(columnWidth);
+    ui->m_roundTreeView->resizeColumnToContents(0);
+    // int columnWidth = ui->m_roundTreeView->columnWidth(0);
+    //  ui->m_roundTreeView->setFixedWidth(columnWidth);
 }
 
 void MainWindow::readRoundTable()
@@ -816,6 +822,11 @@ void MainWindow::onAddRoundItemButtonClicked()
     {
         roundId = m_roundModel->sibling(currentIndex.row(), 4, currentIndex).data().toInt();
     }
+    else
+    {
+        QMessageBox::warning(this, QString::fromLocal8Bit("警告"), QString::fromLocal8Bit("请选择轮次"));
+        return;
+    }
 
     RoundItemDto item;
     memset(&item, 0, sizeof(item));
@@ -834,6 +845,73 @@ void MainWindow::onAddRoundItemButtonClicked()
     populateRoundItemData(data, item);
 
     showRoundItemDialog(data, CommonFormDialog::TYPE_ADD, QModelIndex());
+}
+
+void MainWindow::onEditRoundItemButtonClicked()
+{
+    QModelIndex currentIndex = ui->m_roundTreeView->currentIndex();
+    int roundId = 0;
+    if (currentIndex.isValid() && currentIndex.parent().isValid())
+    {
+        roundId = m_roundModel->sibling(currentIndex.row(), 4, currentIndex).data().toInt();
+    }
+    else
+    {
+        QMessageBox::warning(this, QString::fromLocal8Bit("警告"), QString::fromLocal8Bit("请选择轮次"));
+        return;
+    }
+
+    QStringList oldIds;
+    int rowCount = m_roundItemModel->rowCount();
+    for (int i = 0; i < rowCount; ++i)
+    {
+        int id = m_roundItemModel->item(i, 0)->data(Qt::EditRole).toInt();
+        oldIds.append(QString::number(id));
+    }
+    DFLOG_DEBUG("oldIds: %s", oldIds.join(",").toLocal8Bit().data());
+
+    dfJson::Value roundItemJson = m_pDbManager->getRoundItemJson();
+    JsonTreeDialog dialog(roundItemJson, true, this);
+    dialog.setSelectedIds(oldIds);
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        QStringList newIds = dialog.getSelectedIds();
+
+        QStringList deselectedIds;
+        for (const QString &id : oldIds)
+        {
+            if (!newIds.contains(id))
+            {
+                deselectedIds.append(id);
+            }
+        }
+
+        if (!deselectedIds.isEmpty())
+        {
+            QString qsSql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 所属轮次=0 where 编号 in (%1)")
+                                .arg(deselectedIds.join(","));
+            if (!m_pDbManager->updateTable(qsSql))
+            {
+                QMessageBox::warning(this, QString::fromLocal8Bit("警告"), QString::fromLocal8Bit("更新失败"));
+                return;
+            }
+        }
+
+        if (!newIds.isEmpty())
+        {
+            QString qsSql = QString::fromLocal8Bit("update xopensdb.低周减载轮次项参数表 set 所属轮次=%1 where 编号 in (%2)")
+                                .arg(roundId)
+                                .arg(newIds.join(","));
+
+            if (!m_pDbManager->updateTable(qsSql))
+            {
+                QMessageBox::warning(this, QString::fromLocal8Bit("警告"), QString::fromLocal8Bit("更新失败"));
+                return;
+            }
+        }
+
+        readRoundItemTable(roundId);
+    }
 }
 
 void MainWindow::populateRoundItemData(QList<QPair<QString, QVariant>> &data, const RoundItemDto &item)
@@ -980,7 +1058,10 @@ void MainWindow::updateRoundItemModel(const RoundItemDto &newRoundItem, int row)
     {
         row = m_roundItemModel->rowCount();
     }
-    m_roundItemModel->setItem(row, 0, new QStandardItem(QString::number(newRoundItem.id)));
+    QStandardItem *item0 = new QStandardItem();
+    item0->setData(newRoundItem.id, Qt::EditRole);
+    item0->setData(newRoundItem.id, Qt::DisplayRole);
+    m_roundItemModel->setItem(row, 0, item0);
     m_roundItemModel->setItem(row, 1, new QStandardItem(QString::fromLocal8Bit(newRoundItem.name)));
     m_roundItemModel->setItem(row, 2, new QStandardItem(QString::number(newRoundItem.areaId)));
     m_roundItemModel->setItem(row, 3, new QStandardItem(QString::number(newRoundItem.roundId)));

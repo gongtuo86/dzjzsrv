@@ -38,7 +38,6 @@ public:
     int updateTable(const QString &sql);
     int getMaxIDFromDataBase(const char *tableName);
 
-
     QMap<QString, QString> getStaIdNameMap();
 
     QVector<BreakDto> getBreakList();
@@ -50,6 +49,7 @@ public:
     int updateAreaTable(const AreaVo &area);
     int insertAreaTable(const AreaVo &area);
     void reloadAreaTable();
+    QMap<int, QString> getDeviceOptionsForArea(int areaId);
 
     QVector<RoundDto> getRoundList();
     int insertRoundTable(const RoundDto &round);
@@ -61,6 +61,7 @@ public:
     QVector<RoundItemDto> getRoundItemList(int roundId);
     int updateRoundItemTable(const RoundItemDto &item);
     int insertRoundItemTable(const RoundItemDto &item);
+    dfJson::Value getRoundItemJson();
 
     QMap<int, QString> getRoundTypeMap();
 
@@ -87,7 +88,6 @@ public:
     int updateDeviceParaTable(const DeviceParaDto &devicePara);
     int insertDeviceParaTable(const DeviceParaDto &devicePara);
     int updateRoundItemCount(int deviceId, int nCount);
-    QMap<int, QString> getDeviceOptionsForArea(int areaId);
     int deleteDeviceParaTable(int deviceId, int roundId);
 
     QVector<TMDto> getTMList();

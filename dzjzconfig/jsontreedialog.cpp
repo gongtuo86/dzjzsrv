@@ -63,7 +63,6 @@ JsonTreeModel::JsonTreeModel(const dfJson::Value &data, bool isMultiSelect, QObj
  */
 void JsonTreeModel::parseJson(QStandardItem *parent, const dfJson::Value &value)
 {
-    // 确认 'value' 是一个对象，并且包含 'id' 和 'name' 字段
     if (value.isObject() && value.isMember("id") && value.isMember("name"))
     {
         QString id = QString::fromLocal8Bit(value["id"].asCString());
@@ -73,27 +72,24 @@ void JsonTreeModel::parseJson(QStandardItem *parent, const dfJson::Value &value)
         QStandardItem *nameItem = new QStandardItem(name);
         nameItem->setData(id);
 
-        if (type != "substation")
+        if (m_isMultiSelect)
         {
-            if (m_isMultiSelect)
-            {
-                nameItem->setCheckable(true);
-            }
-            else
-            {
-                // 设置为可选择
-                nameItem->setFlags(nameItem->flags() | Qt::ItemIsSelectable);
-            }
+            nameItem->setCheckable(true);
         }
         else
         {
-            // 对于非线路节点，设置为不可选择
-            nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsSelectable & ~Qt::ItemIsUserCheckable);
+            if (type != "substation")
+            {
+                nameItem->setFlags(nameItem->flags() | Qt::ItemIsSelectable);
+            }
+            else
+            {
+                nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsSelectable);
+            }
         }
 
         parent->appendRow(nameItem);
 
-        // 如果 'value' 包含 'children' 字段，那么递归地处理 'children'
         if (value.isMember("children"))
         {
             const dfJson::Value &children = value["children"];
@@ -103,7 +99,6 @@ void JsonTreeModel::parseJson(QStandardItem *parent, const dfJson::Value &value)
             }
         }
     }
-    // 如果 'value' 是一个数组，那么对数组的每个元素调用 'parseJson'
     else if (value.isArray())
     {
         for (const auto &val : value)
@@ -180,17 +175,37 @@ void JsonTreeDialog::search()
  */
 void JsonTreeDialog::onItemChanged(QStandardItem *item)
 {
+    m_model->blockSignals(true);
+
     if (item->checkState() == Qt::Checked)
     {
-        // 如果项被选中，将其 id 添加到 m_selectedIds 中
-        m_selectedIds.append(item->data().toString());
+        for (int i = 0; i < item->rowCount(); ++i)
+        {
+            QStandardItem *childItem = item->child(i);
+            if (childItem->checkState() != Qt::Checked)
+            {
+                childItem->setCheckState(Qt::Checked);
+                onItemChanged(childItem);
+            }
+        }
     }
     else
     {
-        // 如果项被取消选中，将其 id 从 m_selectedIds 中移除
-        m_selectedIds.removeAll(item->data().toString());
+        for (int i = 0; i < item->rowCount(); ++i)
+        {
+            QStandardItem *childItem = item->child(i);
+            if (childItem->checkState() != Qt::Unchecked)
+            {
+                childItem->setCheckState(Qt::Unchecked);
+                onItemChanged(childItem);
+            }
+        }
     }
-    DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
+    updateParentItem(item);
+
+    m_model->blockSignals(false);
+
+    // DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
 }
 
 /**
@@ -198,10 +213,33 @@ void JsonTreeDialog::onItemChanged(QStandardItem *item)
  *
  * @return QString id列表的字符串表示
  */
-QStringList JsonTreeDialog::getSelectedIds() const
+QStringList JsonTreeDialog::getSelectedIds()
 {
-    //DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
+    if (m_isMultiSelect)
+    {
+        m_selectedIds.clear();
+        for (int i = 0; i < m_model->rowCount(); ++i)
+        {
+            QStandardItem *item = m_model->item(i);
+            updateSelectedIds(item);
+        }
+    }
+
     return m_selectedIds;
+}
+
+void JsonTreeDialog::updateSelectedIds(QStandardItem *item)
+{
+    if (item->checkState() == Qt::Checked && item->rowCount() == 0)
+    {
+        m_selectedIds.append(item->data().toString());
+    }
+
+    for (int i = 0; i < item->rowCount(); ++i)
+    {
+        QStandardItem *childItem = item->child(i);
+        updateSelectedIds(childItem);
+    }
 }
 
 /**
@@ -228,10 +266,10 @@ void JsonTreeDialog::onSelectionChanged(const QItemSelection &selected, const QI
 
         // 将选中项的id添加到 m_selectedIds 中
         m_selectedIds.append(item->data().toString());
-        //DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
+        // DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
     }
 }
-
+#if 0
 /**
  * @brief 获取被选中的项目的名称列表
  *
@@ -258,18 +296,21 @@ QStringList JsonTreeDialog::getSelectedNames() const
         }
     }
 
-   // DFLOG_DEBUG("m_selectedIds, selectedNames: %s", qPrintable(m_selectedIds.join(",")), qPrintable(selectedNames.join(",")));
+    // DFLOG_DEBUG("m_selectedIds, selectedNames: %s", qPrintable(m_selectedIds.join(",")), qPrintable(selectedNames.join(",")));
     return selectedNames;
 }
+#endif
 
 void JsonTreeDialog::setSelectedIds(const QStringList &ids)
 {
-//    DFLOG_DEBUG("ids: %s", qPrintable(ids.join(",")));
-
-    m_selectedIds.clear();
+    m_selectedIds = ids;
+    m_model->blockSignals(true);
 
     if (ids.isEmpty())
+    {
+        m_model->blockSignals(false);
         return;
+    }
 
     if (!m_isMultiSelect)
     {
@@ -280,14 +321,12 @@ void JsonTreeDialog::setSelectedIds(const QStringList &ids)
             1,
             Qt::MatchRecursive);
 
- //       DFLOG_DEBUG("matches.size(): %d", matches.size());
+        //       DFLOG_DEBUG("matches.size(): %d", matches.size());
         if (!matches.isEmpty())
         {
             QStandardItem *item = m_model->itemFromIndex(matches.first());
             ui->m_treeView->setCurrentIndex(m_proxyModel->mapFromSource(item->index()));
-            // m_selectedIds.append(ids.first());
         }
-  //      DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
         return;
     }
 
@@ -304,8 +343,39 @@ void JsonTreeDialog::setSelectedIds(const QStringList &ids)
         {
             QStandardItem *item = m_model->itemFromIndex(match);
             item->setCheckState(Qt::Checked);
-            // m_selectedIds.append(id);
         }
     }
- //   DFLOG_DEBUG("%s", m_selectedIds.join(",").toLocal8Bit().data());
+    m_model->blockSignals(false);
+}
+
+void JsonTreeDialog::updateParentItem(QStandardItem *item)
+{
+    if (!item || item->parent() == nullptr)
+        return;
+
+    QStandardItem *parent = item->parent();
+    int checkedCount = 0;
+    int childCount = parent->rowCount();
+
+    for (int i = 0; i < childCount; ++i)
+    {
+        QStandardItem *childItem = parent->child(i);
+        if (childItem->checkState() == Qt::Checked)
+            ++checkedCount;
+        else if (childItem->checkState() == Qt::PartiallyChecked)
+        {
+            parent->setCheckState(Qt::PartiallyChecked);
+            updateParentItem(parent);
+            return;
+        }
+    }
+
+    if (checkedCount == 0)
+        parent->setCheckState(Qt::Unchecked);
+    else if (checkedCount == childCount)
+        parent->setCheckState(Qt::Checked);
+    else
+        parent->setCheckState(Qt::PartiallyChecked);
+
+    updateParentItem(parent);
 }

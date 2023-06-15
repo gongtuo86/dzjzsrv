@@ -46,10 +46,12 @@ class JsonTreeDialog : public QDialog
 public:
     explicit JsonTreeDialog(const dfJson::Value &data, bool isMultiSelect, QWidget *parent = 0);
     ~JsonTreeDialog();
-    QStringList getSelectedIds() const;
-    QStringList getSelectedNames() const;
+    QStringList getSelectedIds();
+    // QStringList getSelectedNames() const;
 
     void setSelectedIds(const QStringList &ids);
+    void updateParentItem(QStandardItem *item);
+    void updateSelectedIds(QStandardItem *item);
 
 private slots:
     void search();

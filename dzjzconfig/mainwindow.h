@@ -90,6 +90,7 @@ private slots:
     void onDeleteRoundActionTriggered();
 
     void onAddRoundItemButtonClicked();
+    void onEditRoundItemButtonClicked();
     void onDeleteButtonRoundItemClicked(QModelIndex index);
     void onModifyButtonRoundItemClicked(QModelIndex index);
     void onDetailButtonRoundItemClicked(QModelIndex index);

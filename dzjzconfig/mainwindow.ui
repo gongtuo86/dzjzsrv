@@ -175,7 +175,7 @@
             <item>
              <widget class="QGroupBox" name="groupBox_3">
               <property name="title">
-               <string>基本信息</string>
+               <string>轮次信息</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_6">
                <item row="0" column="0">
@@ -310,6 +310,13 @@
                <widget class="QPushButton" name="m_addRoundItemPushButton">
                 <property name="text">
                  <string>添加</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="m_roundItemEditPushButton">
+                <property name="text">
+                 <string>批量选择</string>
                 </property>
                </widget>
               </item>
