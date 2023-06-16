@@ -4,6 +4,9 @@
 #include <QApplication>
 #include <QPainter>
 #include <QStyledItemDelegate>
+#include <QDateTime>
+#include <QVariant>
+
 #include "dflogger.h"
 
 template <typename T>
@@ -13,48 +16,12 @@ public:
     DMDelegateBase(QMap<T, QString> &valueMap, QObject *parent = 0)
         : QStyledItemDelegate(parent), m_valueMap(valueMap) {}
 
-    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+    QString displayText(const QVariant &value, const QLocale &locale) const override
     {
-        QStyleOptionViewItemV4 opt = option;
-        initStyleOption(&opt, index);
+        Q_UNUSED(locale);
 
-        T value = qvariant_cast<T>(index.model()->data(index, Qt::EditRole));
-        QString text = m_valueMap.value(value, QString::fromLocal8Bit(""));
-
-        painter->save();
-        painter->setClipRect(opt.rect);
-
-        if (option.state & QStyle::State_Selected)
-        {
-            painter->fillRect(option.rect, option.palette.highlight());
-            painter->setPen(opt.palette.highlightedText().color());
-        }
-        else if (option.state & QStyle::State_MouseOver)
-        {
-            painter->fillRect(option.rect, option.palette.midlight());
-            painter->setPen(opt.palette.text().color());
-        }
-        else
-        {
-            painter->setPen(opt.palette.text().color());
-        }
-
-        opt.text = text;
-        QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
-
-        painter->restore();
-    }
-
-    virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
-    {
-        T value = qvariant_cast<T>(index.model()->data(index, Qt::EditRole));
-        QString text = m_valueMap.value(value, QString::fromLocal8Bit(""));
-
-        QFontMetrics metrics(option.font);
-        int textWidth = metrics.width(text) + 10;
-        int textHeight = metrics.height() + 10;
-
-        return QSize(textWidth, textHeight);
+        T val = qvariant_cast<T>(value);
+        return m_valueMap.value(val, QString::fromLocal8Bit(""));
     }
 
 protected:
@@ -86,60 +53,28 @@ public:
     DMDelegateMulti(QMap<T, QString> &valueMap, QObject *parent = 0)
         : DMDelegateBase<T>(valueMap, parent) {}
 
-    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+    QString displayText(const QVariant &value, const QLocale &locale) const override
     {
-        QStyleOptionViewItemV4 opt = option;
-        this->initStyleOption(&opt, index);
+        Q_UNUSED(locale);
 
-        QStringList idList = index.model()->data(index, Qt::EditRole).toString().split(",");
-        // DFLOG_DEBUG("idList=%s", index.model()->data(index, Qt::EditRole).toString().toLocal8Bit().data());
+        QStringList idList = value.toString().split(",");
+        // DFLOG_DEBUG("idList=%s", idList.join(",").toLocal8Bit().data());
         QStringList nameList;
         for (const QString &id : idList)
         {
-            // DFLOG_DEBUG("id=%s name=%s", id.toLocal8Bit().data(), this->m_valueMap.value(id, "").toLocal8Bit().data());
-            nameList.append(this->m_valueMap.value(id, QString::fromLocal8Bit("")));
+            T key = QVariant(id).value<T>();
+            // DFLOG_DEBUG("key=%s value=%s", id.toLocal8Bit().data(), this->m_valueMap.value(key, QString::fromLocal8Bit("")).toLocal8Bit().data());
+            nameList.append(this->m_valueMap.value(key, QString::fromLocal8Bit("")));
         }
-        QString text = nameList.join("\n");
-        // DFLOG_DEBUG("nameList=%s", text.toLocal8Bit().data());
-
-        painter->save();
-        painter->setClipRect(opt.rect);
-
-        if (option.state & QStyle::State_Selected)
-        {
-            painter->fillRect(option.rect, option.palette.highlight());
-            painter->setPen(opt.palette.highlightedText().color());
-        }
-        else if (option.state & QStyle::State_MouseOver)
-        {
-            painter->fillRect(option.rect, option.palette.midlight());
-            painter->setPen(opt.palette.text().color());
-        }
-        else
-        {
-            painter->setPen(opt.palette.text().color());
-        }
-
-        painter->drawText(opt.rect, Qt::TextWordWrap, text);
-
-        // opt.text = text;
-        // QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
-
-        painter->restore();
+        return nameList.join(", ");
     }
 
     virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
     {
-        QStringList idList = index.model()->data(index, Qt::EditRole).toString().split(",");
-        QStringList nameList;
-        for (const QString &id : idList)
-        {
-            nameList.append(this->m_valueMap.value(id, QString::fromLocal8Bit("")));
-        }
-        QString text = nameList.join("\n");
+        QString text = displayText(index.model()->data(index, Qt::EditRole), QLocale());
 
         QFontMetrics metrics(option.font);
-        QStringList lines = text.split("\n");
+        QStringList lines = text.split(", ");
         int totalHeight = 0;
         int maxWidth = 0;
         for (const QString &line : lines)
@@ -153,6 +88,26 @@ public:
         }
 
         return QSize(maxWidth, totalHeight);
+    }
+};
+
+class TimestampDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+
+public:
+    TimestampDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+
+    QString displayText(const QVariant &value, const QLocale &locale) const override
+    {
+        Q_UNUSED(locale);
+
+        int timestamp = value.toInt();
+        if (timestamp == 0)
+            return "";
+        // DFLOG_DEBUG("timestamp: %d", timestamp);
+        QDateTime dateTime = QDateTime::fromTime_t(timestamp);
+        return dateTime.toString("yyyy-MM-dd hh:mm:ss");
     }
 };
 

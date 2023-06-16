@@ -16,6 +16,7 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
     m_deviceFuncTypeMap = getDMConfig("低周减载装置功能类型");
     m_roundTypeMap = getRoundTypeMap();
     m_staIdNameMap = getStaIdNameMap();
+    m_staJson = getStaJson();
 
     reloadRound();
 
@@ -228,6 +229,22 @@ QMap<QString, QString> DBManager::getStaIdNameMap()
     return map;
 }
 
+dfJson::Value DBManager::getStaJson()
+{
+    dfJson::Value root(dfJson::arrayValue);
+    for (auto it = m_staIdNameMap.begin(); it != m_staIdNameMap.end(); ++it)
+    {
+        if (it.key().isEmpty())
+            continue;
+        dfJson::Value item;
+        item["id"] = it.key().toLocal8Bit().data();
+        item["name"] = it.value().toLocal8Bit().data();
+        item["type"] = "substationItem";
+        root.append(item);
+    }
+    return root;
+}
+
 QVector<LineDto> DBManager::getLineList()
 {
     QString query = QString::fromLocal8Bit(
@@ -286,6 +303,7 @@ void DBManager::reloadRound()
 {
     m_roundList = getRoundList();
     m_roundIdNameMap = getRoundIdNameMap(m_roundList);
+    m_roundJson = getRoundJson();
 }
 
 int DBManager::updateTable(const QString &sql)
@@ -847,4 +865,58 @@ dfJson::Value DBManager::getRoundItemJson()
     }
 
     return root;
+}
+
+QVector<TaskDto> DBManager::getTaskList()
+{
+    QString qstr = QString::fromLocal8Bit(
+        "select 编号,名称,周期开始时间,周期结束时间,周期,分区条件,厂站条件,轮次条件 from xopensdb.低周减载周期巡检任务表");
+    return getList<TaskDto>(qstr);
+}
+
+dfJson::Value DBManager::getAreaJson()
+{
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue);
+
+    for (const auto &area : m_areaList)
+    {
+        if (area.type == 1)
+            continue;
+        dfJson::Value child(dfJson::objectValue);
+        child["id"] = QString::number(area.id).toLocal8Bit().data();
+        child["name"] = area.name;
+        child["type"] = "area";
+        root.append(child);
+    }
+
+    // qDebug() << QString::fromLocal8Bit(jsonToString(root).c_str());
+
+    return root;
+}
+
+dfJson::Value DBManager::getRoundJson()
+{
+    // 构造 JSON 对象
+    dfJson::Value root(dfJson::arrayValue);
+    for (const auto &round : m_roundList)
+    {
+        dfJson::Value child(dfJson::objectValue);
+        child["id"] = QString::number(round.id).toLocal8Bit().data();
+        child["name"] = round.name;
+        child["type"] = "round";
+        root.append(child);
+    }
+
+    return root;
+}
+
+int DBManager::updateTaskTable(const TaskDto &task)
+{
+    return updateTable(task, "xopensdb.低周减载周期巡检任务表");
+}
+
+int DBManager::insertTaskTable(const TaskDto &task)
+{
+    return insertTable(task, "xopensdb.低周减载周期巡检任务表");
 }

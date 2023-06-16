@@ -29,7 +29,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 
     // 设置左侧列表宽度
     ui->m_listWidget->setIconSize(QSize(32, 32));
-    QIcon icon[3] = {QIcon(":/qss_icons/light/rc/area.png"), QIcon(":/qss_icons/light/rc/device.png"), QIcon(":/qss_icons/light/rc/item.png")};
+    QIcon icon[4] = {
+        QIcon(":/qss_icons/light/rc/area.png"),
+        QIcon(":/qss_icons/light/rc/device.png"),
+        QIcon(":/qss_icons/light/rc/item.png"),
+        QIcon(":/qss_icons/light/rc/item.png")};
     for (int i = 0; i < ui->m_listWidget->count(); ++i)
     {
         QListWidgetItem *pItem = ui->m_listWidget->item(i);
@@ -47,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     ui->m_pushButtonDevicePara->setIconSize(QSize(32, 32));
     ui->m_addRoundItemPushButton->setIcon(btnIcon);
     ui->m_addRoundItemPushButton->setIconSize(QSize(32, 32));
+    ui->m_addTaskPushButton->setIcon(btnIcon);
+    ui->m_addTaskPushButton->setIconSize(QSize(32, 32));
 
     QIcon editBtnIcon = QIcon(":/qss_icons/light/rc/edit.png");
     ui->m_roundItemEditPushButton->setIcon(editBtnIcon);
@@ -68,6 +74,7 @@ void MainWindow::setupModels()
     setupRoundItemTable();
     setupDeviceTable();
     setupDeviceParaTable();
+    setupTaskTable();
 }
 
 void MainWindow::setupAreaTable()
@@ -260,6 +267,7 @@ void MainWindow::setupDeviceParaTable()
     // ui->m_tableViewDevicePara->setAlternatingRowColors(true);
     ui->m_tableViewDevicePara->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->m_tableViewDevicePara->setModel(m_deviceParaModel);
+    ui->m_tableViewDevicePara->setWordWrap(true);
     ui->m_tableViewDevicePara->hideColumn(0);
     ui->m_tableViewDevicePara->setItemDelegateForColumn(1, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_tableViewDevicePara));
     ui->m_tableViewDevicePara->setItemDelegateForColumn(2, new DMDelegateMulti<QString>(m_pDbManager->m_fixValueMap, ui->m_tableViewDevicePara));
@@ -319,10 +327,12 @@ void MainWindow::onModuleItemClicked(QListWidgetItem *item)
     else if (index == 2)
     {
         readRoundTable();
-        for (int i = 0; i < 2; i++)
-        {
-            ui->m_roundTreeView->resizeColumnToContents(i);
-        }
+        ui->m_roundTreeView->resizeColumnToContents(0);
+    }
+    else if (index == 3)
+    {
+        readTaskTable();
+        ui->m_taskTableView->resizeColumnsToContents();
     }
 }
 
@@ -1850,4 +1860,206 @@ void MainWindow::updateDeviceOptions(int index)
     int currentArea = ui->m_areaFilterComboBox->itemData(index).toInt();
     QMap<int, QString> newDeviceOptions = m_pDbManager->getDeviceOptionsForArea(currentArea);
     updateComboBox(ui->m_deviceFilterComboBox, newDeviceOptions);
+}
+
+void MainWindow::setupTaskTable()
+{
+    m_taskModel = new QStandardItemModel(this);
+    m_taskModel->setHorizontalHeaderLabels(QStringList() << QString::fromLocal8Bit("编号")
+                                                         << QString::fromLocal8Bit("名称")
+                                                         << QString::fromLocal8Bit("周期开始时间")
+                                                         << QString::fromLocal8Bit("周期结束时间")
+                                                         << QString::fromLocal8Bit("周期(分钟)")
+                                                         << QString::fromLocal8Bit("分区条件")
+                                                         << QString::fromLocal8Bit("厂站条件")
+                                                         << QString::fromLocal8Bit("轮次条件")
+                                                         << QString::fromLocal8Bit("操作"));
+
+    ui->m_taskTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->m_taskTableView->setModel(m_taskModel);
+    ui->m_taskTableView->setWordWrap(true);
+    ui->m_taskTableView->setItemDelegateForColumn(2, new TimestampDelegate(ui->m_taskTableView));
+    ui->m_taskTableView->setItemDelegateForColumn(3, new TimestampDelegate(ui->m_taskTableView));
+
+    ui->m_taskTableView->setItemDelegateForColumn(5, new DMDelegateMulti<int>(m_pDbManager->m_subAreaIdNameMap, ui->m_taskTableView));
+    ui->m_taskTableView->setItemDelegateForColumn(6, new DMDelegateMulti<QString>(m_pDbManager->m_staIdNameMap, ui->m_taskTableView));
+    ui->m_taskTableView->setItemDelegateForColumn(7, new DMDelegateMulti<int>(m_pDbManager->m_roundIdNameMap, ui->m_taskTableView));
+
+    m_btnDelegateTask = new OperationDelegate(ui->m_taskTableView);
+    connect(ui->m_addTaskPushButton, SIGNAL(clicked()), this, SLOT(onAddButtonTaskClicked()));
+    connect(m_btnDelegateTask, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonAreaClicked(QModelIndex)));
+    connect(m_btnDelegateTask, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonAreaClicked(QModelIndex)));
+    connect(m_btnDelegateTask, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonAreaClicked(QModelIndex)));
+    ui->m_taskTableView->setItemDelegateForColumn(8, m_btnDelegateTask);
+
+    ui->m_taskTableView->resizeColumnsToContents();
+    ui->m_taskTableView->resizeRowsToContents();
+}
+
+void MainWindow::readTaskTable()
+{
+    QVector<TaskDto> list = m_pDbManager->getTaskList();
+    populateTaskModel(list);
+
+    ui->m_taskTableView->resizeColumnsToContents();
+    ui->m_taskTableView->resizeRowsToContents();
+}
+
+void MainWindow::populateTaskModel(const QVector<TaskDto> &taskList)
+{
+    int rowCount = taskList.size();
+    m_taskModel->setRowCount(rowCount);
+    for (int i = 0; i < rowCount; i++)
+    {
+        const TaskDto &task = taskList[i];
+        m_taskModel->setItem(i, 0, new QStandardItem(QString::number(task.id)));
+        m_taskModel->setItem(i, 1, new QStandardItem(QString::fromLocal8Bit(task.name)));
+        m_taskModel->setItem(i, 2, new QStandardItem(QString::number(task.startTime)));
+        m_taskModel->setItem(i, 3, new QStandardItem(QString::number(task.endTime)));
+        m_taskModel->setItem(i, 4, new QStandardItem(QString::number(task.period)));
+        m_taskModel->setItem(i, 5, new QStandardItem(QString::fromLocal8Bit(task.areaCond)));
+        m_taskModel->setItem(i, 6, new QStandardItem(QString::fromLocal8Bit(task.subCond)));
+        m_taskModel->setItem(i, 7, new QStandardItem(QString::fromLocal8Bit(task.roundCond)));
+        m_taskModel->setItem(i, 8, new QStandardItem());
+    }
+}
+
+void MainWindow::onAddButtonTaskClicked()
+{
+    TaskDto task;
+    memset(&task, 0, sizeof(task));
+    task.id = m_pDbManager->getMaxIDFromDataBase("xopensdb.dbo.低周减载周期巡检任务表");
+    strncpy(task.name, "", sizeof(task.name) - 1);
+    task.startTime = QDateTime::currentDateTime().toTime_t();
+    // DFLOG_DEBUG("task.startTime = %d", task.startTime);
+    task.endTime = 0;
+    task.period = 0;
+
+    QList<QPair<QString, QVariant>> data;
+    populateTaskData(data, task);
+
+    showTaskDialog(data, CommonFormDialog::TYPE_ADD, QModelIndex());
+}
+
+void MainWindow::populateTaskData(QList<QPair<QString, QVariant>> &data, const TaskDto &task)
+{
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("编号"), QString::number(task.id)));
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("名称"), QString::fromLocal8Bit(task.name)));
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("周期开始时间"), QDateTime::fromTime_t(task.startTime)));
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("周期结束时间"), QDateTime::fromTime_t(task.endTime)));
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("周期"), task.period));
+
+    JsonDialogData areaCondData;
+    areaCondData.initialText = QString::fromLocal8Bit(task.areaCond);
+    areaCondData.isMultiSelect = true;
+    areaCondData.jsonData = m_pDbManager->getAreaJson();
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("分区条件"), QVariant::fromValue(areaCondData)));
+
+    JsonDialogData stationCondData;
+    stationCondData.initialText = QString::fromLocal8Bit(task.subCond);
+    stationCondData.isMultiSelect = true;
+    stationCondData.jsonData = m_pDbManager->m_staJson;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("厂站条件"), QVariant::fromValue(stationCondData)));
+
+    JsonDialogData roundCondData;
+    roundCondData.initialText = QString::fromLocal8Bit(task.roundCond);
+    roundCondData.isMultiSelect = true;
+    roundCondData.jsonData = m_pDbManager->m_roundJson;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("轮次条件"), QVariant::fromValue(roundCondData)));
+}
+
+void MainWindow::showTaskDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
+{
+    CommonFormDialog dialog(data, act, this);
+    static const QStringList sTitleList = {QString::fromLocal8Bit("任务详情"), QString::fromLocal8Bit("任务修改"), QString::fromLocal8Bit("任务新增")};
+    dialog.setWindowTitle(sTitleList[act]);
+    if (act == CommonFormDialog::TYPE_MODIFY)
+    {
+        dialog.setEnabled(QString::fromLocal8Bit("编号"), false);
+    }
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        QList<QPair<QString, QVariant>> updatedData = dialog.getData();
+
+        TaskDto task = extractTaskData(updatedData);
+
+        if (act == CommonFormDialog::TYPE_MODIFY)
+        {
+            if (m_pDbManager->updateTaskTable(task) != CS_SUCCEED)
+            {
+                QMessageBox::warning(this, QString::fromLocal8Bit("修改失败"), QString::fromLocal8Bit("修改失败"));
+                return;
+            }
+            updateTaskModel(task, index.row());
+        }
+        else
+        {
+            if (m_pDbManager->insertTaskTable(task) != CS_SUCCEED)
+            {
+                QMessageBox::warning(this, QString::fromLocal8Bit("新增失败"), QString::fromLocal8Bit("新增失败"));
+                return;
+            }
+            updateTaskModel(task);
+        }
+    }
+    ui->m_taskTableView->resizeColumnsToContents();
+    ui->m_taskTableView->resizeRowsToContents();
+}
+
+TaskDto MainWindow::extractTaskData(const QList<QPair<QString, QVariant>> &updatedData)
+{
+    TaskDto task;
+    for (const auto &pair : updatedData)
+    {
+        if (pair.first == QString::fromLocal8Bit("编号"))
+        {
+            task.id = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("名称"))
+        {
+            strncpy(task.name, pair.second.toString().toLocal8Bit().data(), sizeof(task.name) - 1);
+        }
+        else if (pair.first == QString::fromLocal8Bit("周期开始时间"))
+        {
+            task.startTime = pair.second.toDateTime().toTime_t();
+        }
+        else if (pair.first == QString::fromLocal8Bit("周期结束时间"))
+        {
+            task.endTime = pair.second.toDateTime().toTime_t();
+        }
+        else if (pair.first == QString::fromLocal8Bit("周期"))
+        {
+            task.period = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("分区条件"))
+        {
+            strncpy(task.areaCond, pair.second.toString().toLocal8Bit().data(), sizeof(task.areaCond) - 1);
+        }
+        else if (pair.first == QString::fromLocal8Bit("厂站条件"))
+        {
+            strncpy(task.subCond, pair.second.toString().toLocal8Bit().data(), sizeof(task.subCond) - 1);
+        }
+        else if (pair.first == QString::fromLocal8Bit("轮次条件"))
+        {
+            strncpy(task.roundCond, pair.second.toString().toLocal8Bit().data(), sizeof(task.roundCond) - 1);
+        }
+    }
+    return task;
+}
+
+void MainWindow::updateTaskModel(const TaskDto &newTask, int row)
+{
+    if (row == -1)
+    {
+        row = m_taskModel->rowCount();
+    }
+    m_taskModel->setItem(row, 0, new QStandardItem(QString::number(newTask.id)));
+    m_taskModel->setItem(row, 1, new QStandardItem(QString::fromLocal8Bit(newTask.name)));
+    m_taskModel->setItem(row, 2, new QStandardItem(QString::number(newTask.startTime)));
+    m_taskModel->setItem(row, 3, new QStandardItem(QString::number(newTask.endTime)));
+    m_taskModel->setItem(row, 4, new QStandardItem(QString::number(newTask.period)));
+    m_taskModel->setItem(row, 5, new QStandardItem(QString::fromLocal8Bit(newTask.areaCond)));
+    m_taskModel->setItem(row, 6, new QStandardItem(QString::fromLocal8Bit(newTask.subCond)));
+    m_taskModel->setItem(row, 7, new QStandardItem(QString::fromLocal8Bit(newTask.roundCond)));
+    m_taskModel->setItem(row, 8, new QStandardItem(""));
 }

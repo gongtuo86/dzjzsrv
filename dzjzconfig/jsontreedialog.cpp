@@ -50,7 +50,20 @@ JsonTreeModel::JsonTreeModel(const dfJson::Value &data, bool isMultiSelect, QObj
     : QStandardItemModel(parent), m_isMultiSelect(isMultiSelect)
 {
     auto *root = invisibleRootItem();
-    parseJson(root, data);
+
+    if (m_isMultiSelect)
+    {
+        QStandardItem *allItem = new QStandardItem(QString::fromLocal8Bit("È«²¿"));
+        allItem->setCheckable(true);
+        allItem->setData("root");
+
+        root->appendRow(allItem);
+        parseJson(allItem, data);
+    }
+    else
+    {
+        parseJson(root, data);
+    }
 
     setHorizontalHeaderLabels({QString::fromLocal8Bit("Ãû³Æ")});
 }
@@ -327,6 +340,7 @@ void JsonTreeDialog::setSelectedIds(const QStringList &ids)
             QStandardItem *item = m_model->itemFromIndex(matches.first());
             ui->m_treeView->setCurrentIndex(m_proxyModel->mapFromSource(item->index()));
         }
+        m_model->blockSignals(false);
         return;
     }
 
@@ -343,6 +357,7 @@ void JsonTreeDialog::setSelectedIds(const QStringList &ids)
         {
             QStandardItem *item = m_model->itemFromIndex(match);
             item->setCheckState(Qt::Checked);
+            updateParentItem(item);
         }
     }
     m_model->blockSignals(false);

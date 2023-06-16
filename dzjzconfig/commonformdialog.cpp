@@ -62,6 +62,15 @@ void JsonDialogLineEdit::mouseDoubleClickEvent(QMouseEvent *event)
     }
 }
 
+void MyDateTimeEdit::mousePressEvent(QMouseEvent *event)
+{
+    if (dateTime() == QDateTime::fromTime_t(0))
+    {
+        setDateTime(QDateTime::currentDateTime());
+    }
+    QDateTimeEdit::mousePressEvent(event);
+}
+
 CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, int type, QWidget *parent) : QDialog(parent)
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -90,9 +99,15 @@ CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, 
             }
             case QVariant::DateTime:
             {
-                QDateTimeEdit *dateTimeEdit = new QDateTimeEdit(this);
+                MyDateTimeEdit *dateTimeEdit = new MyDateTimeEdit(this);
                 control = dateTimeEdit;
+                dateTimeEdit->setDisplayFormat("yyyy-MM-dd hh:mm:ss");
+                dateTimeEdit->setCalendarPopup(true);
                 dateTimeEdit->setDateTime(datum.second.toDateTime());
+
+                dateTimeEdit->setMinimumDateTime(QDateTime::fromTime_t(0));
+                dateTimeEdit->setSpecialValueText(QString::fromLocal8Bit("нч"));
+
                 break;
             }
             default:

@@ -27,7 +27,7 @@
        <enum>QListView::Fixed</enum>
       </property>
       <property name="currentRow">
-       <number>0</number>
+       <number>-1</number>
       </property>
       <item>
        <property name="text">
@@ -42,6 +42,11 @@
       <item>
        <property name="text">
         <string>轮次编辑</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>定值巡视</string>
        </property>
       </item>
      </widget>
@@ -61,7 +66,7 @@
        <number>0</number>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="pageArea">
        <layout class="QGridLayout" name="gridLayout">
@@ -162,7 +167,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="page">
+      <widget class="QWidget" name="pageRound">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QSplitter" name="splitter_2">
@@ -328,6 +333,37 @@
            </layout>
           </widget>
          </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="pageTask">
+       <layout class="QGridLayout" name="gridLayout_7">
+        <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <spacer name="horizontalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="m_addTaskPushButton">
+            <property name="text">
+             <string>添加</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="1" column="0">
+         <widget class="QTableView" name="m_taskTableView"/>
         </item>
        </layout>
       </widget>

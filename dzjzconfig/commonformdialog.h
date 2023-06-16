@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QVBoxLayout>
 #include <QVariant>
+#include <QDateTimeEdit>
 
 #include "dfjson/json.h"
 
@@ -43,6 +44,17 @@ public:
 private:
     dfJson::Value m_jsonData;
     bool m_isMultiSelect;
+};
+
+class MyDateTimeEdit : public QDateTimeEdit
+{
+    Q_OBJECT
+
+public:
+    MyDateTimeEdit(QWidget *parent = nullptr) : QDateTimeEdit(parent) {}
+
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
 };
 
 class CommonFormDialog : public QDialog

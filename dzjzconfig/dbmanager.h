@@ -39,6 +39,7 @@ public:
     int getMaxIDFromDataBase(const char *tableName);
 
     QMap<QString, QString> getStaIdNameMap();
+    dfJson::Value getStaJson();
 
     QVector<BreakDto> getBreakList();
     QMap<QString, QString> getBreakIdNameMap();
@@ -57,6 +58,7 @@ public:
     QMap<int, QString> getRoundIdNameMap(const QVector<RoundDto> &list);
     void reloadRound();
     int deleteRoundTable(int id);
+    dfJson::Value getRoundJson();
 
     QVector<RoundItemDto> getRoundItemList(int roundId);
     int updateRoundItemTable(const RoundItemDto &item);
@@ -103,6 +105,11 @@ public:
     QMap<QString, QString> getFixValuMap(const QVector<FixValueDto> &list);
     void reloadFixValue();
 
+    QVector<TaskDto> getTaskList();
+    dfJson::Value getAreaJson();
+    int updateTaskTable(const TaskDto &task);
+    int insertTaskTable(const TaskDto &task);
+
 private:
     explicit DBManager(QObject *parent = 0);
     ~DBManager(){};
@@ -123,6 +130,7 @@ public:
     QMap<int, QString> m_subAreaIdNameMap;  // 变电站区域
 
     QMap<QString, QString> m_staIdNameMap;  // 变电站
+    dfJson::Value m_staJson;
 
     QVector<LineDto> m_lineList;            // 线路列表
     QMap<QString, QString> m_lineIdNameMap; // 馈线
@@ -134,9 +142,10 @@ public:
 
     QVector<RoundDto> m_roundList;       // 轮次
     QMap<int, QString> m_roundIdNameMap; // 轮次map
+    dfJson::Value m_roundJson;
 
-    QVector<RtuDto> m_rtuList;           // Rtu
-    QMap<int, QString> m_rtuIdNameMap;   // RTU map
+    QVector<RtuDto> m_rtuList;         // Rtu
+    QMap<int, QString> m_rtuIdNameMap; // RTU map
     dfJson::Value m_rtuJson;
 
     QVector<DeviceDto> m_deviceList;

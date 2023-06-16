@@ -156,3 +156,16 @@ public:
     qint16 rtuNo;
     char rtuName[40];
 };
+
+class TaskDto
+{
+public:
+    int id;
+    char name[256];
+    int startTime;
+    int endTime;
+    int period;
+    char areaCond[256];
+    char subCond[256];
+    char roundCond[256];
+};

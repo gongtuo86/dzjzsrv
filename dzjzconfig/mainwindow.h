@@ -55,6 +55,8 @@ private:
     RoundItemDto extractRoundItemData(const QList<QPair<QString, QVariant>> &updatedData);
     void showRoundItemDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index);
     void updateRoundItemModel(const RoundItemDto &newRoundItem, int row = -1);
+    void addActionToMenu(QMenu *menu, int id, const QString &name, const char *slot);
+    void updateComboBox(QComboBox *comboBox, const QMap<int, QString> &map);
 
     void setupDeviceTable();
     void readDeviceTable();
@@ -72,8 +74,13 @@ private:
     DeviceParaDto extractDeviceParaData(const QList<QPair<QString, QVariant>> &updatedData);
     void updateDeviceParaModel(const DeviceParaDto &newDevice, int row = -1);
 
-    void addActionToMenu(QMenu *menu, int id, const QString &name, const char *slot);
-    void updateComboBox(QComboBox *comboBox, const QMap<int, QString> &map);
+    void setupTaskTable();
+    void readTaskTable();
+    void populateTaskModel(const QVector<TaskDto> &areaList);
+    void populateTaskData(QList<QPair<QString, QVariant>> &data, const TaskDto &task);
+    void showTaskDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index);
+    TaskDto extractTaskData(const QList<QPair<QString, QVariant>> &updatedData);
+    void updateTaskModel(const TaskDto &newTask, int row = -1);
 
 private slots:
     void onModuleItemClicked(QListWidgetItem *item);
@@ -115,6 +122,8 @@ private slots:
     void onSetStrap();
     void onSetDevice();
 
+    void onAddButtonTaskClicked();
+
 private:
     Ui::MainWindow *ui;
     DBManager *m_pDbManager;
@@ -133,6 +142,9 @@ private:
 
     QStandardItemModel *m_deviceParaModel;
     OperationDelegate *m_BtnDelegateDevicePara;
+
+    QStandardItemModel *m_taskModel;
+    OperationDelegate *m_btnDelegateTask;
 
     QMenu *m_roundContextMenu;
     QMenu *m_roundItemContextMenu;
