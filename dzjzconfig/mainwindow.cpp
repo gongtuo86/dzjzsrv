@@ -19,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 {
     ui->setupUi(this);
 
+    this->setWindowTitle(QString::fromLocal8Bit("第三道防线维护工具"));
+
     startdb(1, 1);
 
     m_pDbManager = DBManager::getInstance();
@@ -33,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
         QIcon(":/qss_icons/light/rc/area.png"),
         QIcon(":/qss_icons/light/rc/device.png"),
         QIcon(":/qss_icons/light/rc/item.png"),
-        QIcon(":/qss_icons/light/rc/item.png")};
+        QIcon(":/qss_icons/light/rc/task.png")};
     for (int i = 0; i < ui->m_listWidget->count(); ++i)
     {
         QListWidgetItem *pItem = ui->m_listWidget->item(i);
@@ -1887,9 +1889,9 @@ void MainWindow::setupTaskTable()
 
     m_btnDelegateTask = new OperationDelegate(ui->m_taskTableView);
     connect(ui->m_addTaskPushButton, SIGNAL(clicked()), this, SLOT(onAddButtonTaskClicked()));
-    connect(m_btnDelegateTask, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonAreaClicked(QModelIndex)));
-    connect(m_btnDelegateTask, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonAreaClicked(QModelIndex)));
-    connect(m_btnDelegateTask, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonAreaClicked(QModelIndex)));
+    connect(m_btnDelegateTask, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonTaskClicked(QModelIndex)));
+    connect(m_btnDelegateTask, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonTaskClicked(QModelIndex)));
+    connect(m_btnDelegateTask, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonTaskClicked(QModelIndex)));
     ui->m_taskTableView->setItemDelegateForColumn(8, m_btnDelegateTask);
 
     ui->m_taskTableView->resizeColumnsToContents();
@@ -2062,4 +2064,66 @@ void MainWindow::updateTaskModel(const TaskDto &newTask, int row)
     m_taskModel->setItem(row, 6, new QStandardItem(QString::fromLocal8Bit(newTask.subCond)));
     m_taskModel->setItem(row, 7, new QStandardItem(QString::fromLocal8Bit(newTask.roundCond)));
     m_taskModel->setItem(row, 8, new QStandardItem(""));
+}
+
+void MainWindow::onDetailButtonTaskClicked(QModelIndex index)
+{
+    TaskDto task;
+    memset(&task, 0, sizeof(task));
+    task.id = m_taskModel->index(index.row(), 0).data().toInt();
+    strncpy(task.name, m_taskModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(task.name) - 1);
+    task.startTime = m_taskModel->index(index.row(), 2).data().toInt();
+    task.endTime = m_taskModel->index(index.row(), 3).data().toInt();
+    task.period = m_taskModel->index(index.row(), 4).data().toInt();
+    strncpy(task.areaCond, m_taskModel->index(index.row(), 5).data().toString().toLocal8Bit().data(), sizeof(task.areaCond) - 1);
+    strncpy(task.subCond, m_taskModel->index(index.row(), 6).data().toString().toLocal8Bit().data(), sizeof(task.subCond) - 1);
+    strncpy(task.roundCond, m_taskModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(task.roundCond) - 1);
+
+    QList<QPair<QString, QVariant>> data;
+    populateTaskData(data, task);
+
+    showTaskDialog(data, CommonFormDialog::TYPE_DETAIL, index);
+}
+
+void MainWindow::onDeleteButtonTaskClicked(QModelIndex index)
+{
+    int id = m_taskModel->index(index.row(), 0).data().toInt();
+
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this,
+                                  QString::fromLocal8Bit("删除"),
+                                  QString::fromLocal8Bit("确定删除编号为%1的任务吗?").arg(id),
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+        return;
+
+    if (m_pDbManager->deleteTable(id, "xopensdb.dbo.低周减载周期巡检任务表") != CS_SUCCEED)
+    {
+        QMessageBox::warning(this, QString::fromLocal8Bit("删除失败"), QString::fromLocal8Bit("删除失败"));
+        return;
+    }
+
+    m_taskModel->removeRow(index.row());
+    ui->m_taskTableView->resizeColumnsToContents();
+    ui->m_taskTableView->resizeRowsToContents();
+}
+
+void MainWindow::onModifyButtonTaskClicked(QModelIndex index)
+{
+    TaskDto task;
+    memset(&task, 0, sizeof(task));
+    task.id = m_taskModel->index(index.row(), 0).data().toInt();
+    strncpy(task.name, m_taskModel->index(index.row(), 1).data().toString().toLocal8Bit().data(), sizeof(task.name) - 1);
+    task.startTime = m_taskModel->index(index.row(), 2).data().toInt();
+    task.endTime = m_taskModel->index(index.row(), 3).data().toInt();
+    task.period = m_taskModel->index(index.row(), 4).data().toInt();
+    strncpy(task.areaCond, m_taskModel->index(index.row(), 5).data().toString().toLocal8Bit().data(), sizeof(task.areaCond) - 1);
+    strncpy(task.subCond, m_taskModel->index(index.row(), 6).data().toString().toLocal8Bit().data(), sizeof(task.subCond) - 1);
+    strncpy(task.roundCond, m_taskModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(task.roundCond) - 1);
+
+    QList<QPair<QString, QVariant>> data;
+    populateTaskData(data, task);
+
+    showTaskDialog(data, CommonFormDialog::TYPE_MODIFY, index);
 }

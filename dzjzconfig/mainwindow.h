@@ -123,6 +123,9 @@ private slots:
     void onSetDevice();
 
     void onAddButtonTaskClicked();
+    void onDetailButtonTaskClicked(QModelIndex index);
+    void onDeleteButtonTaskClicked(QModelIndex index);
+    void onModifyButtonTaskClicked(QModelIndex index);
 
 private:
     Ui::MainWindow *ui;
