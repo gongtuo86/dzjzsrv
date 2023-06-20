@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../smmi/component/dfjson"
+		},
+		{
+			"path": "../smmi/graph/qtxpaint"
 		}
 	],
 	"settings": {

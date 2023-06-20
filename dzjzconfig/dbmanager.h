@@ -110,6 +110,8 @@ public:
     int updateTaskTable(const TaskDto &task);
     int insertTaskTable(const TaskDto &task);
 
+    int loadRdb(char* tableName);
+
 private:
     explicit DBManager(QObject *parent = 0);
     ~DBManager(){};

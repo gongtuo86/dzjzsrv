@@ -123,9 +123,9 @@ CProtocol *CProtApp::SwitchProtocol(int gene)
 {
     switch (gene)
     {
-    case PROTTYPE_NET103_SH:
-        return m_net103_sh;
-        break;
+        case PROTTYPE_NET103_SH:
+            return m_net103_sh;
+            break;
     }
     return NULL;
 }
@@ -136,10 +136,10 @@ bool CProtApp::containsPattern(const std::string &str, const std::string &patter
 
     if (std::regex_search(str, regexPattern))
     {
-        DFLOG_WARN("str: %s, pattern: %s = true", str.c_str(), pattern.c_str());
+        DFLOG_INFO("str: %s, pattern: %s = true", str.c_str(), pattern.c_str());
         return true; // 字符串匹配正则表达式模式
     }
-    //DFLOG_WARN("str: %s, pattern: %s = false", str.c_str(), pattern.c_str());
+    DFLOG_DEBUG("str: %s, pattern: %s = false", str.c_str(), pattern.c_str());
     return false; // 不满足匹配条件
 }
 
@@ -156,15 +156,15 @@ CProtocol *CProtApp::SwitchPcProt(TPYE type)
     std::string pattern;
     switch (type)
     {
-    case typeDZ:
-        pattern = "^(?!.*装置参数定值组).*定值组.*$";
-        break;
-    case typeRYB:
-        pattern = "软压板组";
-        break;
-    case typeYXQ:
-        pattern = "定值区号组";
-        break;
+        case typeDZ:
+            pattern = "^(?!.*装置参数定值组).*定值组.*$";
+            break;
+        case typeRYB:
+            pattern = "软压板";
+            break;
+        case typeYXQ:
+            pattern = "定值区号";
+            break;
     }
 
     // int targetAddr = -1;
@@ -187,6 +187,7 @@ CProtocol *CProtApp::SwitchPcProt(TPYE type)
     //     break;
     // }
 
+    DFLOG_DEBUG("type=%d pattern=%s m_curProtNum=%d", type, pattern.c_str(), m_curProtNum);
     for (int i = 0; i < m_curProtNum; i++)
     {
         if (m_pCurProt + i == NULL)

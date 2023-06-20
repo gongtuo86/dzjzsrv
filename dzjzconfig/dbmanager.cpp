@@ -3,6 +3,7 @@
 #include <QMap>
 #include <QDebug>
 
+#include "netsub.h"
 #include "dto.h"
 #include "dzjzconfigutil.h"
 
@@ -919,4 +920,16 @@ int DBManager::updateTaskTable(const TaskDto &task)
 int DBManager::insertTaskTable(const TaskDto &task)
 {
     return insertTable(task, "xopensdb.低周减载周期巡检任务表");
+}
+
+int DBManager::loadRdb(char *tableName)
+{
+    rtdb_proc rtdbproc;
+    if (!rtdbproc.recall("ems", "", "", tableName))
+    {
+        DFLOG_DEBUG("加载实时库表失败: %s", tableName);
+        return -1;
+    }
+    DFLOG_DEBUG("加载实时库表成功: %s", tableName);
+    return 0;
 }

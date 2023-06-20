@@ -271,14 +271,13 @@ CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区
             LEFT JOIN 低周减载装置参数设定表 f ON f.所属装置 = a.关联装置 AND f.轮次编号=a.所属轮次
             LEFT JOIN 遥信参数表 b ON a.关联开关 = b.代码
             LEFT JOIN 线路参数表 c ON a.关联馈线 = c.编号
-            LEFT JOIN 低周减载装置轮次项关联表 d ON a.编号 = d.轮次项ID
             LEFT JOIN 厂站参数表 g ON g.编号 = b.厂站代码
             LEFT JOIN 低周减载轮次参数表 h ON h.编号 = a.所属轮次
             LEFT JOIN 低周减载区域参数表 i ON i.编号 = a.所属分区
             LEFT JOIN 低周减载轮次类型表 j ON j.编号 = h.轮类型;
 
 DELETE FROM 实时库表模式 WHERE 代码 = 'dzjzrounditem';
-INSERT INTO 实时库表模式 VALUES('dzjzrounditem','低周减载轮次项表',1062,'scadadb','SCADA','scada',1,1,1,1,2000,'id','','','','','','低周减载轮次项视图','低周减载轮次项值表','低周减载轮次项参数表','低周减载轮次参数表','',0,1,'',0,'','','','',0,0,'','');
+INSERT INTO 实时库表模式 VALUES('dzjzrounditem','低周减载轮次项表',1062,'scadadb','SCADA','scada',1,1,1,1,2000,'id','','','','','','低周减载轮次项视图','低周减载轮次项值表','低周减载轮次项参数表','低周减载轮次参数表','低周减载装置参数表',0,1,'',0,'','','','',0,0,'','');
 DELETE FROM 实时库列模式 WHERE 表代码 = 'dzjzrounditem';
 INSERT INTO 实时库列模式 VALUES('id','编号','dzjzrounditem',0,5,0,1,0,0,0,0);
 INSERT INTO 实时库列模式 VALUES('name','名称','dzjzrounditem',256,10,0,1,10,10,0,0);
@@ -507,17 +506,6 @@ insert into 参数域属性表 values('动作信号ID','低周减载装置参数
 
 delete from 参数表属性表 
 where
-    表名 = '低周减载装置轮次项关联表';
-insert into 参数表属性表 values('低周减载装置轮次项关联表','SCADA','轮次项ID','轮次项ID',1,'装置ID','低周减载装置参数表','编号','名称',0,0);
-delete from 参数域属性表 
-where
-    所属表名 = '低周减载装置轮次项关联表';
-insert into 参数域属性表 values('轮次项ID','低周减载装置轮次项关联表',10,0,6,'低周减载轮次项参数表','名称','编号',' ',0,0,' ',' ',0,0);
-insert into 参数域属性表 values('装置ID','低周减载装置轮次项关联表',10,0,6,'低周减载装置参数表','名称','编号',' ',0,0,' ',' ',0,0);
-
-
-delete from 参数表属性表 
-where
     表名 = '低周减载轮次项视图';
 insert into 参数表属性表 values('低周减载轮次项视图','SCADA','轮次项编号','轮次项编号',0,' ',' ',' ',' ',0,0);
 delete from 参数域属性表 
@@ -542,8 +530,6 @@ where
 insert into 参数表属性表 values('低周减载周期巡检任务表','SCADA','编号','编号',0,' ',' ',' ',' ',0,0);
 
 
-insert into 实时库列模式 values('roundfunctype','功能类型','dzjzrounditem',0,0,0,1,350,350,0,0);
-
 delete from 程序注册表 
 where
     代码 = 'dzjzk';
@@ -552,7 +538,7 @@ insert into 程序注册表 values('dzjzk', '低压减载轮次应切荷量的K�
 delete from 事项类型表 
 where
     类型号 = 2068;
-insert into 事项类型表 values(2,2068,'低周减载',' ',0,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ')
+insert into 事项类型表 values(2,2068,'低周减载',' ',0,' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ');
 
 -- 历史数据库
 use xopenshdb;

@@ -3,6 +3,9 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QMenu>
+#include <QProgressDialog>
+#include <QThreadPool>
+#include <QTimer>
 
 #include "commonformdialog.h"
 #include "dbmanager.h"
@@ -13,6 +16,8 @@
 #include "sybase.h"
 #include "ui_mainwindow.h"
 #include "jsontreedialog.h"
+#include "fixvaluesrv.h"
+#include "callRunnable.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
                                           ui(new Ui::MainWindow)
@@ -59,6 +64,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     QIcon editBtnIcon = QIcon(":/qss_icons/light/rc/edit.png");
     ui->m_roundItemEditPushButton->setIcon(editBtnIcon);
     ui->m_roundItemEditPushButton->setIconSize(QSize(32, 32));
+
+    QIcon callBtnIcon = QIcon(":/qss_icons/light/rc/call.png");
+    ui->m_callPushButton->setIcon(callBtnIcon);
+    ui->m_callPushButton->setIconSize(QSize(32, 32));
 
     onModuleItemClicked(ui->m_listWidget->item(0));
 }
@@ -285,6 +294,8 @@ void MainWindow::setupDeviceParaTable()
     ui->m_tableViewDevicePara->setItemDelegateForColumn(7, m_BtnDelegateDevicePara);
     connect(ui->m_pushButtonDevicePara, SIGNAL(clicked()), this, SLOT(onAddDeviceParaButtonClicked()));
 
+    connect(ui->m_callPushButton, SIGNAL(clicked()), this, SLOT(onCallButtonClicked()));
+
     ui->m_tableViewDevicePara->resizeColumnsToContents();
     ui->m_tableViewDevicePara->resizeRowsToContents();
 }
@@ -402,6 +413,8 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
             }
             updateAreaModel(area, index.row());
             m_pDbManager->reloadAreaTable();
+            m_pDbManager->loadRdb("低周减载区域参数表");
+            m_pDbManager->loadRdb("低周减载轮次项视图");
             updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
         }
         else
@@ -413,6 +426,8 @@ void MainWindow::showAreaDialog(const QList<QPair<QString, QVariant>> &data, int
             }
             updateAreaModel(area);
             m_pDbManager->reloadAreaTable();
+            m_pDbManager->loadRdb("低周减载区域参数表");
+            m_pDbManager->loadRdb("低周减载轮次项视图");
             updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
         }
     }
@@ -461,6 +476,8 @@ void MainWindow::onDeleteButtonAreaClicked(QModelIndex index)
 
     m_areaModel->removeRow(index.row());
     m_pDbManager->reloadAreaTable();
+    m_pDbManager->loadRdb("低周减载区域参数表");
+    m_pDbManager->loadRdb("低周减载轮次项视图");
     updateComboBox(ui->m_areaFilterComboBox, m_pDbManager->m_subAreaIdNameMap);
 }
 
@@ -701,6 +718,9 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
             updateComboBox(ui->m_roundFilterComboBox, m_pDbManager->m_roundIdNameMap);
             QItemSelection newSelection(index, index);
             onRoundSelectionModelChanged(newSelection, QItemSelection());
+
+            m_pDbManager->loadRdb("低周减载轮次参数表");
+            m_pDbManager->loadRdb("低周减载轮次项视图");
         }
         else
         {
@@ -715,6 +735,9 @@ int MainWindow::showRoundDialog(const QList<QPair<QString, QVariant>> &data, int
             QStandardItem *rootItem = m_roundModel->item(0);
             QModelIndex newIndex = rootItem->child(rootItem->rowCount() - 1, 0)->index();
             ui->m_roundTreeView->setCurrentIndex(newIndex);
+
+            m_pDbManager->loadRdb("低周减载轮次参数表");
+            m_pDbManager->loadRdb("低周减载轮次项视图");
         }
     }
 
@@ -791,6 +814,10 @@ void MainWindow::onDeleteRoundActionTriggered()
     }
     m_roundModel->itemFromIndex(currentIndex.parent())->removeRow(currentIndex.row());
     m_pDbManager->reloadRound();
+
+    m_pDbManager->loadRdb("低周减载轮次参数表");
+    m_pDbManager->loadRdb("低周减载轮次项视图");
+
     updateComboBox(ui->m_roundFilterComboBox, m_pDbManager->m_roundIdNameMap);
 }
 
@@ -1050,6 +1077,8 @@ void MainWindow::showRoundItemDialog(const QList<QPair<QString, QVariant>> &data
                 return;
             }
             updateRoundItemModel(item, index.row());
+
+            m_pDbManager->loadRdb("低周减载轮次项视图");
         }
         else
         {
@@ -1059,6 +1088,8 @@ void MainWindow::showRoundItemDialog(const QList<QPair<QString, QVariant>> &data
                 return;
             }
             updateRoundItemModel(item);
+
+            m_pDbManager->loadRdb("低周减载轮次项视图");
         }
     }
     ui->m_roundItemTableView->resizeColumnsToContents();
@@ -1129,6 +1160,8 @@ void MainWindow::onDeleteButtonRoundItemClicked(QModelIndex proxyIndex)
     }
 
     m_roundItemModel->removeRow(sourceIndex.row());
+
+    m_pDbManager->loadRdb("低周减载轮次项视图");
 }
 
 void MainWindow::onModifyButtonRoundItemClicked(QModelIndex proxyIndex)
@@ -1249,6 +1282,7 @@ void MainWindow::onDeleteButtonDeviceClicked(QModelIndex index)
     m_deviceModel->removeRow(index.row());
     m_deviceParaModel->removeRows(0, m_deviceParaModel->rowCount());
     m_pDbManager->reloadDevice();
+    m_pDbManager->loadRdb("低周减载轮次项视图");
     updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
 }
 
@@ -1309,6 +1343,7 @@ void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, i
             }
             updateDeviceModel(device, index.row());
             m_pDbManager->reloadDevice();
+            m_pDbManager->loadRdb("低周减载轮次项视图");
             updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
         }
         else
@@ -1320,6 +1355,7 @@ void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, i
             }
             updateDeviceModel(device);
             m_pDbManager->reloadDevice();
+            m_pDbManager->loadRdb("低周减载轮次项视图");
             updateComboBox(ui->m_deviceFilterComboBox, m_pDbManager->m_deviceIdNameMap);
         }
     }
@@ -1476,6 +1512,7 @@ void MainWindow::showDeviceParaDialog(const QList<QPair<QString, QVariant>> &dat
                 return;
             }
             updateDeviceParaModel(item, index.row());
+            m_pDbManager->loadRdb("低周减载轮次项视图");
         }
         else
         {
@@ -1485,6 +1522,7 @@ void MainWindow::showDeviceParaDialog(const QList<QPair<QString, QVariant>> &dat
                 return;
             }
             updateDeviceParaModel(item);
+            m_pDbManager->loadRdb("低周减载轮次项视图");
         }
     }
 
@@ -1621,6 +1659,7 @@ void MainWindow::onDeleteButtonDeviceParaClicked(QModelIndex index)
     }
 
     m_deviceParaModel->removeRow(index.row());
+    m_pDbManager->loadRdb("低周减载轮次项视图");
 }
 
 void MainWindow::showRoundItemContextMenu(const QPoint &pos)
@@ -1993,6 +2032,7 @@ void MainWindow::showTaskDialog(const QList<QPair<QString, QVariant>> &data, int
                 return;
             }
             updateTaskModel(task, index.row());
+            m_pDbManager->loadRdb("低周减载周期巡检任务表");
         }
         else
         {
@@ -2002,6 +2042,7 @@ void MainWindow::showTaskDialog(const QList<QPair<QString, QVariant>> &data, int
                 return;
             }
             updateTaskModel(task);
+            m_pDbManager->loadRdb("低周减载周期巡检任务表");
         }
     }
     ui->m_taskTableView->resizeColumnsToContents();
@@ -2107,6 +2148,8 @@ void MainWindow::onDeleteButtonTaskClicked(QModelIndex index)
     m_taskModel->removeRow(index.row());
     ui->m_taskTableView->resizeColumnsToContents();
     ui->m_taskTableView->resizeRowsToContents();
+
+    m_pDbManager->loadRdb("低周减载周期巡检任务表");
 }
 
 void MainWindow::onModifyButtonTaskClicked(QModelIndex index)
@@ -2126,4 +2169,80 @@ void MainWindow::onModifyButtonTaskClicked(QModelIndex index)
     populateTaskData(data, task);
 
     showTaskDialog(data, CommonFormDialog::TYPE_MODIFY, index);
+}
+
+void MainWindow::onCallButtonClicked()
+{
+    QModelIndex currentIndex = ui->m_tableViewDevice->currentIndex();
+    int id = m_deviceModel->data(m_deviceModel->index(currentIndex.row(), 0)).toInt();
+
+    QProgressDialog dialog(QString::fromLocal8Bit("倒计时30秒"), QString::fromLocal8Bit("取消"), 0, 30, this);
+    dialog.setWindowModality(Qt::WindowModal);
+    // dialog.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::FramelessWindowHint);
+    // dialog.setCancelButton(nullptr);
+
+    CallWorkder *pWorker = new CallWorkder;
+    pWorker->setId(id);
+
+    QThread *thread = new QThread;
+    pWorker->moveToThread(thread);
+
+    QTimer *progressTimer = new QTimer(&dialog);
+
+    connect(thread, SIGNAL(started()), pWorker, SLOT(call()));
+    connect(pWorker, SIGNAL(resultReady(int)), this, SLOT(handleResult(int)));
+    connect(pWorker, SIGNAL(resultReady(int)), &dialog, SLOT(cancel()));
+    connect(pWorker, SIGNAL(resultReady(int)), progressTimer, SLOT(stop()));
+    connect(pWorker, SIGNAL(resultReady(int)), thread, SLOT(quit()));
+
+    connect(thread, SIGNAL(finished()), pWorker, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), progressTimer, SLOT(deleteLater()));
+
+    connect(progressTimer, SIGNAL(timeout()), this, SLOT(updateProgressDialog()));
+
+    connect(&dialog, SIGNAL(canceled()), pWorker, SLOT(cancel()));
+    connect(&dialog, SIGNAL(canceled()), progressTimer, SLOT(stop()));
+    connect(&dialog, SIGNAL(canceled()), thread, SLOT(quit()));
+
+    thread->start();
+
+    progressTimer->start(1000);
+
+    dialog.exec();
+}
+
+void MainWindow::onCallCancel()
+{
+    qDebug() << "canceled signal emitted";
+}
+
+void MainWindow::handleResult(int result)
+{
+    if (result != FIX_CALL_SUCCESS)
+    {
+        QMessageBox::warning(this, QString::fromLocal8Bit("警告"), QString::fromLocal8Bit("召唤失败"));
+        return;
+    }
+    QMessageBox::information(this, QString::fromLocal8Bit("提示"), QString::fromLocal8Bit("召唤成功"));
+    m_pDbManager->reloadFixValue();
+    m_pDbManager->loadRdb("低周减载装置定值信息表");
+}
+
+void MainWindow::updateProgressDialog()
+{
+    QProgressDialog *dialog = qobject_cast<QProgressDialog *>(sender()->parent());
+    if (dialog)
+    {
+        int value = dialog->value();
+        if (value == dialog->maximum())
+        {
+            dialog->cancel();
+        }
+        else
+        {
+            dialog->setLabelText(QString::fromLocal8Bit("倒计时%1秒").arg(dialog->maximum() - value - 1));
+            dialog->setValue(value + 1);
+        }
+    }
 }

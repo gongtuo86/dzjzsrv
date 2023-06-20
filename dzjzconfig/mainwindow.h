@@ -11,6 +11,7 @@
 #include "dfjson/json.h"
 #include "dto.h"
 #include "dzjzconfigutil.h"
+#include "callRunnable.h"
 
 class QListWidgetItem;
 class OperationDelegate;
@@ -115,6 +116,10 @@ private slots:
     void onDetailButtonDeviceParaClicked(QModelIndex index);
     void onModifyButtonDeviceParaClicked(QModelIndex index);
     void onDeleteButtonDeviceParaClicked(QModelIndex index);
+    void onCallButtonClicked();
+    void onCallCancel();
+    void handleResult(int result);
+    void updateProgressDialog();
 
     void onSetArea();
     void onSetRound();

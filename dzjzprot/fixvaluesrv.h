@@ -43,10 +43,10 @@ public:
     CFixValueService();
     ~CFixValueService();
     int executeBatch();
+    int executeSingle(int nRtuNo);
     std::string executeInspectionByCond(const std::string &jsonPara, ProgressCallback progressCallback);
 
 private:
-    int executeSingle(int nRtuNo);
     std::vector<DZJZ_DEVICE> GetDZJZDeviceList();
     std::vector<DZJZ_DEVICE> GetDZJZDeviceList(const QString &subStation, int area, int round);
     void reloadRTDB();

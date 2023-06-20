@@ -27,9 +27,10 @@ RCC_DIR = $$(RUNHOME)/tmp/dzjzsrv/dzjzconfig/rcc
 
 INCLUDEPATH +=  \
                 $(RUNHOME_INC)/include \
-                $(RUNHOME_INC)/smmi/component/dfjson/include
+                $(RUNHOME_INC)/smmi/component/dfjson/include \
+                $(RUNHOME_INC)/dzjzsrv/dzjzprot
 
-LIBS += -L$(RUNHOME)/bin -L$(RUNHOME)/lib -lexdb -ldfnet -ldorbase -ldflogger -ldfjson
+LIBS += -L$(RUNHOME)/bin -L$(RUNHOME)/lib -lexdb -ldfnet -ldorbase -ldflogger -ldfjson -ldzjzprot
 
 
 HEADERS  += mainwindow.h \
@@ -39,14 +40,16 @@ HEADERS  += mainwindow.h \
             dto.h \
             dbmanager.h \
             jsontreedialog.h \
-            dzjzconfigutil.h
+            dzjzconfigutil.h \
+    callRunnable.h
       
 SOURCES += main.cpp\
         mainwindow.cpp \
         operationdelegate.cpp \
         commonformdialog.cpp \
         dbmanager.cpp \
-        jsontreedialog.cpp
+        jsontreedialog.cpp \
+    callRunnable.cpp
 
 FORMS    += mainwindow.ui \
             jsontreedialog.ui
