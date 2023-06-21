@@ -268,6 +268,10 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
         return;
     }
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pItem->lastAalrm;
+
     std::string valueKey = std::to_string(pItem->deviceid) + ":" + std::string(pItem->realvalueid);
     if (m_dzjzDZMap.find(valueKey) != m_dzjzDZMap.end())
     {
@@ -296,6 +300,7 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem->valuejudge != bAlarm)
     {
         pItem->valuejudge = bAlarm;
+        pItem->lastAalrm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (bAlarm)
         {
@@ -306,6 +311,15 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
         {
             dzjzEnt.make_judgevalue_event(pItem, 0);
             DFLOG_INFO("pItem %d 定值研判恢复", pItem->id);
+        }
+    }
+    else
+    {
+        if (bAlarm && seconds >= 86400)
+        {
+            pItem->lastAalrm = now;
+            dzjzEnt.make_judgevalue_event(pItem, 1);
+            DFLOG_INFO("pItem %d 定值研判告警", pItem->id);
         }
     }
 }
@@ -320,12 +334,17 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem == nullptr)
         return;
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pItem->lastAalrm;
+
     // 只有第一轮和第二轮判定，其他轮若告警则恢复
-    if (pItem->roundtype != 1 || pItem->roundtype != 2)
+    if (pItem->roundtype != 1 && pItem->roundtype != 2)
     {
         if (pItem->planjudge == 1)
         {
             pItem->planjudge = 0;
+            pItem->lastAalrm = now;
             RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
             dzjzEnt.make_judgeplan_event(pItem, 0);
             DFLOG_INFO("pItem %d 方案研判恢复", pItem->id);
@@ -337,6 +356,7 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
     if (bAlarm != pItem->planjudge)
     {
         pItem->planjudge = bAlarm;
+        pItem->lastAalrm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (bAlarm)
         {
@@ -347,6 +367,15 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
         {
             DFLOG_INFO("pItem %d 方案研判恢复", pItem->id);
             dzjzEnt.make_judgeplan_event(pItem, 0);
+        }
+    }
+    else
+    {
+        if (bAlarm && seconds >= 86400)
+        {
+            pItem->lastAalrm = now;
+            DFLOG_INFO("pItem %d 方案研判告警", pItem->id);
+            dzjzEnt.make_judgeplan_event(pItem, 1);
         }
     }
 }
@@ -363,13 +392,27 @@ void DZJZ_RoundItem::setStrapJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem == nullptr)
         return;
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pItem->lastAalrm;
+
     uchar strapJudge = pItem->strapreal << 1 | pItem->strapplan;
     if (pItem->strapjudge != strapJudge)
     {
         pItem->strapjudge = strapJudge;
+        pItem->lastAalrm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         DFLOG_INFO("pItem %d 功能压板状态[%s]", pItem->id, s_stapArr[strapJudge]);
         dzjzEnt.make_judgefunc_event(pItem);
+    }
+    else
+    {
+        if (seconds >= 86400 && (strapJudge == 1 || strapJudge == 2))
+        {
+            pItem->lastAalrm = now;
+            DFLOG_INFO("pItem %d 功能压板状态[%s]", pItem->id, s_stapArr[strapJudge]);
+            dzjzEnt.make_judgefunc_event(pItem);
+        }
     }
 }
 

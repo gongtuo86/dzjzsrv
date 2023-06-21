@@ -155,9 +155,10 @@ std::string DZJZ_ActionStatis::time2str(int time)
  * @param pDevice
  * @return std::string
  */
-std::string DZJZ_ActionStatis::getActionDesc(int time, const std::string &deviceName)
+std::string DZJZ_ActionStatis::getActionDesc()
 {
-    return "时间：" + time2str(time) + " 设备：" + deviceName + " 动作";
+    // return "时间：" + time2str(time) + " 设备：" + deviceName + " 动作";
+    return "低周减载动作 " + time2str(m_startTime);
 }
 
 /**
@@ -196,16 +197,15 @@ float DZJZ_ActionStatis::getAllNetJudgePower()
  * @param actionid
  * @param roundItemVec
  */
-int DZJZ_ActionStatis::saveAction(int time, int deviceID, const std::string &deviceName, const std::vector<TDZJZ_ROUNDITEM> &roundItemVec)
+int DZJZ_ActionStatis::saveAction(const std::vector<TDZJZ_ROUNDITEM> &roundItemVec)
 {
     TDZJZ_ACTION action;
     memset(&action, 0, sizeof(TDZJZ_ACTION));
-    action.time = time;
-
+    action.time = m_startTime;
     action.id = getMaxID("xopenshdb.dbo.低周减载装置动作表");
-    action.deviceID = deviceID;
-    strcpy(action.deviceName, deviceName.c_str());
-    strcpy(action.description, getActionDesc(time, deviceName).c_str());
+    // action.deviceID = deviceID;
+    // strcpy(action.deviceName, deviceName.c_str());
+    strcpy(action.description, getActionDesc().c_str());
     action.areaJudgeValue = getAllNetJudgePower();
     action.actionValue = calcActionJudgePower(roundItemVec);
     if (!ISZERO(action.areaJudgeValue))
@@ -243,19 +243,66 @@ float DZJZ_ActionStatis::calcActionJudgePower(const std::vector<TDZJZ_ROUNDITEM>
  * @param actionid 对象名称
  * @param roundItemVec 轮次项
  */
-void DZJZ_ActionStatis::saveActionInfo(int time, int deviceID, const std::string &deviceName, const std::vector<TDZJZ_ROUNDITEM> &roundItemVec)
+void DZJZ_ActionStatis::saveActionInfo(const std::vector<TDZJZ_ROUNDITEM> &roundItemVec)
 {
     // 保存动作
-    int id = saveAction(time, deviceID, deviceName, roundItemVec);
+    int id = saveAction(roundItemVec);
     if (id != -1)
     {
         // 保存轮次项
-        saveActionRoundItemVec(id, time, roundItemVec);
+        saveActionRoundItemVec(id, m_startTime, roundItemVec);
     }
     else
     {
-        DFLOG_ERROR("动作id获取失败: deviceID=%d", deviceID);
+        DFLOG_ERROR("动作id获取失败");
     }
 
-    DFLOG_INFO("动作信息保存成功: deviceID=%d", deviceID);
+    DFLOG_INFO("动作信息保存成功");
+}
+
+void DZJZ_ActionStatis::onActionTimerTimeout()
+{
+    while (m_timerRunning)
+    {
+        // 如果已经有60秒没有新的轮次项加入了，就保存
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_lastAddTime).count() >= 60)
+        {
+            std::lock_guard<std::mutex> lock(m_cacheMutex);
+            if (!m_roundItemCache.empty())
+            {
+                DFLOG_DEBUG("已经有60秒没有新的轮次项生成, 记录所有动作轮次项");
+                saveActionInfo(m_roundItemCache);
+                m_roundItemCache.clear();
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+void DZJZ_ActionStatis::startActionTimer()
+{
+    m_timerRunning = true;
+    m_actionTimerThread = std::thread(&DZJZ_ActionStatis::onActionTimerTimeout, this);
+    DFLOG_DEBUG("Start action timer");
+}
+
+void DZJZ_ActionStatis::stopActionTimer()
+{
+    m_timerRunning = false;
+    if (m_actionTimerThread.joinable())
+    {
+        m_actionTimerThread.join();
+    }
+    DFLOG_DEBUG("Stop action timer");
+}
+
+void DZJZ_ActionStatis::addRoundItem(const TDZJZ_ROUNDITEM &item)
+{
+    std::lock_guard<std::mutex> lock(m_cacheMutex);
+    if (m_roundItemCache.empty())
+    {
+        get_intertime(&m_startTime);
+    }
+    m_roundItemCache.push_back(item);
+    m_lastAddTime = std::chrono::system_clock::now();
 }

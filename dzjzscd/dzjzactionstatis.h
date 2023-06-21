@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <string>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 #include "dzjzcommon.h"
 
@@ -15,9 +18,22 @@ public:
     std::string getAreaName(int areaID);
     std::string getRoundTypeName(int typeID);
     std::string time2str(int time);
-    std::string getActionDesc(int time, const std::string &deviceName);
+    std::string getActionDesc();
     float getAllNetJudgePower();
-    int saveAction(int time, int deviceID, const std::string &deviceName, const std::vector<TDZJZ_ROUNDITEM> &roundItemVec);
+    int saveAction(const std::vector<TDZJZ_ROUNDITEM> &roundItemVec);
     float calcActionJudgePower(const std::vector<TDZJZ_ROUNDITEM> &roundItemVec);
-    void saveActionInfo(int time, int deviceID, const std::string &deviceName, const std::vector<TDZJZ_ROUNDITEM> &roundItemVec);
+    void saveActionInfo(const std::vector<TDZJZ_ROUNDITEM> &roundItemVec);
+
+    void onActionTimerTimeout();
+    void startActionTimer();
+    void stopActionTimer();
+    void addRoundItem(const TDZJZ_ROUNDITEM &item);
+
+private:
+    std::atomic<bool> m_timerRunning;
+    std::vector<TDZJZ_ROUNDITEM> m_roundItemCache;
+    intertime m_startTime;
+    std::thread m_actionTimerThread;
+    std::chrono::time_point<std::chrono::system_clock> m_lastAddTime;
+    std::mutex m_cacheMutex;
 };

@@ -566,11 +566,16 @@ void DZJZ_CalcTool::judgeRequire(TDZJZ_ROUND *pRound)
     if (pRound == nullptr)
         return;
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pRound->lastAlarm;
+
     const bool bAlarm = pRound->judgepower < pRound->requirePower;
 
     if (pRound->judgeRequire != bAlarm)
     {
         pRound->judgeRequire = bAlarm;
+        pRound->lastAlarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_TBLNAME);
         if (bAlarm)
         {
@@ -581,6 +586,15 @@ void DZJZ_CalcTool::judgeRequire(TDZJZ_ROUND *pRound)
         {
             DFLOG_INFO("round %d 低周减载容量不足告警恢复 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
             dzjzEnt.make_capacity_event(pRound, 0);
+        }
+    }
+    else
+    {
+        if (seconds >= 86400 && bAlarm)
+        {
+            pRound->lastAlarm = now;
+            dzjzEnt.make_capacity_event(pRound, 1);
+            DFLOG_INFO("round %d 低周减载容量不足告警 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
         }
     }
 }

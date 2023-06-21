@@ -159,6 +159,7 @@ int analyse_stachg(int apentcode, SYS_CLOCK *apentclock, void *apentmsg, void *a
 
             if (stachgmsg->maketype < STACHG_MAKETYPE_NOTMAKEENT)
                 return OK;
+
             // 根据动作信号获取轮次项
             std::vector<TDZJZ_ROUNDITEM> roundItemVec;
             if (actionStatis->getRoundItemVec(stachgmsg->objectname, roundItemVec) < 0)
@@ -167,8 +168,11 @@ int analyse_stachg(int apentcode, SYS_CLOCK *apentclock, void *apentmsg, void *a
                 return -1;
             }
 
-            intertime time = 0;
-            convert_clock(&stachgmsg->chgclock, &time);
+            // 将轮次项添加到缓存
+            for (const auto &item : roundItemVec)
+            {
+                actionStatis->addRoundItem(item);
+            }
 
             int deviceID = 0;
             std::string deviceName = "";
@@ -179,8 +183,6 @@ int analyse_stachg(int apentcode, SYS_CLOCK *apentclock, void *apentmsg, void *a
             }
 
             dzjzEnt.make_action_event(stachgmsg->chgclock, deviceID, deviceName, roundItemVec, STAVAL_ON);
-
-            actionStatis->saveActionInfo(time, deviceID, deviceName, roundItemVec);
         }
 
         return OK;
@@ -204,6 +206,7 @@ UINT proc_auto_judge_thread(LPVOID pParam)
     // 低周减载自动研判;
     DZJZ_RoundItem roundItem;
     DZJZ_ActionStatis actionStatis;
+    actionStatis.startActionTimer();
 
     apevent.addapent_callback(APENTCODE_STACHG, analyse_stachg, &actionStatis, NULL); // 监视变位事项
     for (;;)
@@ -221,6 +224,7 @@ UINT proc_auto_judge_thread(LPVOID pParam)
     }
 
     DFLOG_INFO("dzjz_server: proc_auto_judge_thread end");
+    actionStatis.stopActionTimer();
 
     return NULL;
 }

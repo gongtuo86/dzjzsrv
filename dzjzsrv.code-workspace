@@ -10,7 +10,10 @@
 			"path": "../smmi/component/dfjson"
 		},
 		{
-			"path": "../smmi/graph/qtxpaint"
+			"path": "../smmi"
+		},
+		{
+			"path": "../network"
 		}
 	],
 	"settings": {

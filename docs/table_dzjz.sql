@@ -84,7 +84,7 @@ CREATE TABLE xopensdb.低周减载轮次值表 (
     应切荷量 FLOAT NULL,
     实际备用切荷量 FLOAT NULL,
     计划备用切荷量 FLOAT NULL,
-    减载容量研判 INT NULL,
+    减载容量研判 TINYINT UNSIGNED NULL,
     CONSTRAINT pk_低周减载轮次参数表 PRIMARY KEY (编号)
 );
 
@@ -105,7 +105,8 @@ insert into 实时库列模式 values('requirepower','应切荷量','dzjzround',
 insert into 实时库列模式 values('issuepower','下发应切荷量','dzjzround',0,8,0,1,70,70,0,0);
 insert into 实时库列模式 values('standbypower','实际备用切荷量','dzjzround',0,8,0,2,80,80,0,0);
 insert into 实时库列模式 values('planstandbypwr','计划备用切荷量','dzjzround',0,8,0,2,90,90,0,0);
-insert into 实时库列模式 values('judgerequire','减载容量研判','dzjzround',0,5,0,2,100,100,0,0);
+insert into 实时库列模式 values('judgerequire','减载容量研判','dzjzround',0,0,0,2,100,100,0,0);
+insert into 实时库列模式 values('lastalarm','上次告警时间','dzjzround',0,5,0,2,110,110,0,0);
 
 -- 轮次类型
 DROP TABLE IF EXISTS xopensdb.低周减载轮次类型表;
@@ -317,6 +318,7 @@ INSERT INTO 实时库列模式 VALUES('devicename','装置名称','dzjzrounditem
 INSERT INTO 实时库列模式 VALUES('functype','功能类型','dzjzrounditem',0,0,0,1,350,350,0,0);
 INSERT INTO 实时库列模式 VALUES('devtype','装置类型','dzjzrounditem',0,0,0,1,360,360,0,0);
 INSERT INTO 实时库列模式 VALUES('pname','有功代码','dzjzrounditem',24,10,0,1,370,370,0,0);
+INSERT INTO 实时库列模式 VALUES('lastalarm','上次告警时间','dzjzrounditem',0,5,0,2,380,380,0,0);
 
 DROP TABLE IF EXISTS xopensdb.低周减载周期巡检任务表;
 CREATE TABLE IF NOT EXISTS xopensdb.低周减载周期巡检任务表 (
@@ -619,8 +621,6 @@ DROP TABLE IF EXISTS xopenshdb.低周减载装置动作表;
 CREATE TABLE xopenshdb.低周减载装置动作表 (
     ID INT NOT NULL,
     时间 INT NOT NULL,
-    装置ID INT NOT NULL,
-    装置名称 VARCHAR(256) NULL,
     描述 VARCHAR(256) NULL,
     投运切荷量 FLOAT NULL,
     动作切荷量 FLOAT NULL,

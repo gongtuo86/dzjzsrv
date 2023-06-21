@@ -69,6 +69,7 @@ typedef struct
     uchar functype;                 // 轮次功能类型
     uchar devtype;                  // 装置类型
     char pname[24];                 // 有功代码
+    int lastAalrm;                  // 上次告警时间
 } TDZJZ_ROUNDITEM;
 
 /**
@@ -88,6 +89,7 @@ typedef struct
     float standbyPower;     // 备用切荷量
     float planStandbyPower; // 计划备用切荷量
     uchar judgeRequire;     // 投运切荷量研判
+    int lastAlarm;          // 上次告警时间
 } TDZJZ_ROUND;
 
 /**
@@ -347,8 +349,6 @@ class TDZJZ_ACTION
 public:
     int id;                // 动作ID
     int time;              // 动作时间
-    int deviceID;          // 装置ID
-    char deviceName[256];  // 装置名称
     char description[256]; // 动作描述
     float areaJudgeValue;  // 地区投运切荷量
     float actionValue;     // 动作切荷量
