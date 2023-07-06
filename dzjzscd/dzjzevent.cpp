@@ -36,11 +36,11 @@ int DZJZ_Event::make_judgeplan_event(TDZJZ_ROUNDITEM *pItem, int act)
 
     if (act)
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "轮次项[%s] 轮次[%s] 减载方案不合理", pItem->name, pItem->roundname);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "减载方案不合理:轮次[%s] 轮次项[%s]", pItem->roundname, pItem->name);
     }
     else
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "轮次项[%s] 轮次[%s] 减载方案恢复正常", pItem->name, pItem->roundname);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "减载方案恢复:轮次[%s] 轮次项[%s]", pItem->roundname, pItem->name);
     }
 
     if (ismainserver())
@@ -81,11 +81,11 @@ int DZJZ_Event::make_judgevalue_event(TDZJZ_ROUNDITEM *pItem, int act)
     std::string strPlanValue = getFixedValue(pItem->planvalue, pItem->plantime, pItem->functype);
     if (act)
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "装置[%s]定值不一致,前置上送定值为[%s].计划定值[%s].轮次项[%s]", pItem->devicename, strRealValue.c_str(), strPlanValue.c_str(), pItem->roundname);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "定值不同:装置[%s] 轮次项[%s] 实际定值[%s] 计划定值[%s]", pItem->devicename, pItem->roundname, strRealValue.c_str(), strPlanValue.c_str());
     }
     else
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "装置[%s]定值恢复一致,前置上送定值为[%s].计划定值[%s].轮次项[%s]", pItem->devicename, strRealValue.c_str(), strPlanValue.c_str(), pItem->roundname);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "定值恢复:装置[%s] 轮次项[%s] 实际定值[%s] 计划定值[%s]", pItem->devicename, pItem->roundname, strRealValue.c_str(), strPlanValue.c_str());
     }
 
     if (ismainserver())
@@ -123,14 +123,14 @@ int DZJZ_Event::make_judgefunc_event(TDZJZ_ROUNDITEM *pItem)
     tmpevent.sysevent.DiskOut = 1;                     // 存盘
     tmpevent.sysevent.DispOut = 1;                     // 登录
 
-    std::string strapName = getActionName(pItem->strapid);
+    std::string strapName = getStrapName(pItem->deviceid, pItem->strapid);
     if (pItem->strapjudge)
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "装置[%s]的[%s]压板[%s].轮次项[%s]", pItem->devicename, strapName.c_str(), s_stapArr[pItem->strapjudge], pItem->roundname);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "%s:装置[%s] 轮次[%s] 轮次项[%s] 压板[%s]", s_stapArr[pItem->strapjudge], pItem->devicename, pItem->roundname, pItem->name, strapName.c_str());
     }
     else
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "装置[%s]的[%s]压板恢复为[%s].轮次项[%s]", pItem->devicename, strapName.c_str(), s_stapArr[pItem->strapjudge], pItem->roundname);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "%s:装置[%s] 轮次[%s] 轮次项[%s] 压板[%s]", s_stapArr[pItem->strapjudge], pItem->devicename, pItem->roundname, pItem->name, strapName.c_str());
     }
 
     if (ismainserver())
@@ -168,11 +168,11 @@ int DZJZ_Event::make_capacity_event(TDZJZ_ROUND *pRound, int act)
 
     if (act)
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "减载容量不足：轮次[%s],投运切荷量：%f, 应切荷量：%f", pRound->name, pRound->judgepower, pRound->requirePower);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "减载容量不足:轮次[%s] 投运切荷量[%f] 应切荷量[%f]", pRound->name, pRound->judgepower, pRound->requirePower);
     }
     else
     {
-        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "减载容量满足：轮次[%s],投运切荷量：%f, 应切荷量：%f", pRound->name, pRound->judgepower, pRound->requirePower);
+        std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "减载容量不足恢复:轮次[%s] 投运切荷量[%f] 应切荷量[%f]", pRound->name, pRound->judgepower, pRound->requirePower);
     }
 
     if (ismainserver())
@@ -210,11 +210,11 @@ int DZJZ_Event::make_action_event(SYS_CLOCK &evtclock, int deviceID, const std::
 
         if (act)
         {
-            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载动作：装置[%s].轮次[%s].负荷[%s].信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
+            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载动作：装置[%s] 轮次[%s] 负荷[%s] 信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
         }
         else
         {
-            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载复归：装置[%s].轮次[%s].负荷[%s].信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
+            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载复归：装置[%s] 轮次[%s] 负荷[%s] 信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
         }
 
         if (ismainserver())

@@ -43,7 +43,7 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
 
     m_tsList = getTSList();
     m_tsIdNameMap = getTSNameMap(m_tsList);
-    m_tsJson = getTSJson(m_tsList);
+    //m_tsJson = getTSJson(m_tsList);
 
     reloadFixValue();
 }
@@ -154,7 +154,7 @@ int DBManager::updateRoundTable(const RoundDto &round)
 QVector<RoundItemDto> DBManager::getRoundItemList(int roundId)
 {
     QString query = QString::fromLocal8Bit(
-        "select 编号,名称,所属分区,所属轮次,关联馈线,负荷类型,投退计划,关联开关,有功代码,关联装置"
+        "select 编号,名称,所属分区,所属轮次,关联馈线,负荷类型,投退计划,关联开关,有功代码,关联装置,关联出口"
         " from xopensdb.低周减载轮次项参数表 where 1=1");
 
     if (roundId > 0)
@@ -453,7 +453,7 @@ QVector<TMDto> DBManager::getTMList()
 {
     QString query = QString::fromLocal8Bit(
         "select a.代码,a.描述, a.厂站代码,b.名称 from 遥测参数表 a, 厂站参数表 b "
-        "where a.厂站代码=b.编号");
+        "where a.厂站代码=b.编号 and (a.描述 like '%%有功%%' or a.描述 like '%%P%%' or a.描述 like '%%p%%') order by a.代码");
 
     return getList<TMDto>(query);
 }
@@ -532,7 +532,27 @@ QMap<QString, QString> DBManager::getTSNameMap(const QVector<TSDto> &list)
     return map;
 }
 
-dfJson::Value DBManager::getTSJson(const QVector<TSDto> &list)
+dfJson::Value DBManager::getTSJson(int nRtuNo)
+{
+    dfJson::Value root;
+
+    for (const auto &ts : m_tsList)
+    {
+        if (nRtuNo != ts.rtuNo)
+            continue;
+
+        dfJson::Value tsJson;
+        tsJson["id"] = ts.id;
+        tsJson["name"] = ts.name;
+        tsJson["type"] = "ts";
+        root.append(tsJson);
+    }
+
+    return root;
+}
+
+#if 0 
+dfJson::Value DBManager::getTSJson(int nRtuNo, const QVector<TSDto> &list)
 {
     QMap<QString, dfJson::Value> substations;
     QMap<QString, QMap<int, dfJson::Value>> rtus;
@@ -582,6 +602,7 @@ dfJson::Value DBManager::getTSJson(const QVector<TSDto> &list)
 
     return root;
 }
+#endif
 
 dfJson::Value DBManager::getRtuJson(const QVector<RtuDto> &rtus)
 {

@@ -270,7 +270,7 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
 
     intertime now;
     get_intertime(&now);
-    int seconds = now - pItem->lastAalrm;
+    int seconds = now - pItem->lastAalarm;
 
     std::string valueKey = std::to_string(pItem->deviceid) + ":" + std::string(pItem->realvalueid);
     if (m_dzjzDZMap.find(valueKey) != m_dzjzDZMap.end())
@@ -300,7 +300,7 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem->valuejudge != bAlarm)
     {
         pItem->valuejudge = bAlarm;
-        pItem->lastAalrm = now;
+        pItem->lastAalarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (bAlarm)
         {
@@ -317,7 +317,7 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
     {
         if (bAlarm && seconds >= 86400)
         {
-            pItem->lastAalrm = now;
+            pItem->lastAalarm = now;
             dzjzEnt.make_judgevalue_event(pItem, 1);
             DFLOG_INFO("pItem %d 定值研判告警", pItem->id);
         }
@@ -336,7 +336,7 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
 
     intertime now;
     get_intertime(&now);
-    int seconds = now - pItem->lastAalrm;
+    int seconds = now - pItem->lastAalarm;
 
     // 只有第一轮和第二轮判定，其他轮若告警则恢复
     if (pItem->roundtype != 1 && pItem->roundtype != 2)
@@ -344,7 +344,7 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
         if (pItem->planjudge == 1)
         {
             pItem->planjudge = 0;
-            pItem->lastAalrm = now;
+            pItem->lastAalarm = now;
             RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
             dzjzEnt.make_judgeplan_event(pItem, 0);
             DFLOG_INFO("pItem %d 方案研判恢复", pItem->id);
@@ -356,7 +356,7 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
     if (bAlarm != pItem->planjudge)
     {
         pItem->planjudge = bAlarm;
-        pItem->lastAalrm = now;
+        pItem->lastAalarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (bAlarm)
         {
@@ -373,7 +373,7 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
     {
         if (bAlarm && seconds >= 86400)
         {
-            pItem->lastAalrm = now;
+            pItem->lastAalarm = now;
             DFLOG_INFO("pItem %d 方案研判告警", pItem->id);
             dzjzEnt.make_judgeplan_event(pItem, 1);
         }
@@ -394,13 +394,13 @@ void DZJZ_RoundItem::setStrapJudge(TDZJZ_ROUNDITEM *pItem)
 
     intertime now;
     get_intertime(&now);
-    int seconds = now - pItem->lastAalrm;
+    int seconds = now - pItem->lastAalarm;
 
     uchar strapJudge = pItem->strapreal << 1 | pItem->strapplan;
     if (pItem->strapjudge != strapJudge)
     {
         pItem->strapjudge = strapJudge;
-        pItem->lastAalrm = now;
+        pItem->lastAalarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         DFLOG_INFO("pItem %d 功能压板状态[%s]", pItem->id, s_stapArr[strapJudge]);
         dzjzEnt.make_judgefunc_event(pItem);
@@ -409,27 +409,10 @@ void DZJZ_RoundItem::setStrapJudge(TDZJZ_ROUNDITEM *pItem)
     {
         if (seconds >= 86400 && (strapJudge == 1 || strapJudge == 2))
         {
-            pItem->lastAalrm = now;
+            pItem->lastAalarm = now;
             DFLOG_INFO("pItem %d 功能压板状态[%s]", pItem->id, s_stapArr[strapJudge]);
             dzjzEnt.make_judgefunc_event(pItem);
         }
-    }
-}
-
-/**
- * @brief 分割字符串
- *
- * @param str
- * @param ids
- */
-void DZJZ_RoundItem::splitString(const char *str, std::vector<std::string> &ids)
-{
-    ids.clear();
-    std::istringstream iss(str);
-    std::string strapid;
-    while (std::getline(iss, strapid, ','))
-    {
-        ids.push_back(strapid);
     }
 }
 
@@ -444,7 +427,7 @@ void DZJZ_RoundItem::strapJudge(TDZJZ_ROUNDITEM *pItem)
         return;
 
     std::vector<std::string> strapids;
-    splitString(pItem->strapid, strapids);
+    splitString(pItem->strapid, strapids, ',');
 
     Protsig status;
     uchar tmpVal;
@@ -484,7 +467,7 @@ void DZJZ_RoundItem::alarmJudge(TDZJZ_ROUNDITEM *pItem)
         return;
 
     std::vector<std::string> alarmids;
-    splitString(pItem->alarmid, alarmids);
+    splitString(pItem->alarmid, alarmids, ',');
     uchar tmpVal;
     Protsig status;
 

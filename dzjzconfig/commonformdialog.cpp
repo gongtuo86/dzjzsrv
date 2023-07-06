@@ -71,6 +71,29 @@ void MyDateTimeEdit::mousePressEvent(QMouseEvent *event)
     QDateTimeEdit::mousePressEvent(event);
 }
 
+MyDateTimeEdit::MyDateTimeEdit(QWidget *parent) : QDateTimeEdit(parent)
+{
+    contextMenu = new QMenu(this);
+    noneAction = contextMenu->addAction(QString::fromLocal8Bit("ÎÞÖÕÖ¹Ê±¼ä"));
+    connect(noneAction, SIGNAL(triggered()), this, SLOT(onMenuNoneClicked()));
+}
+
+void MyDateTimeEdit::setNone()
+{
+    DFLOG_DEBUG("setNone");
+    setDateTime(QDateTime::fromTime_t(0));
+}
+
+void MyDateTimeEdit::contextMenuEvent(QContextMenuEvent *event)
+{
+    contextMenu->exec(event->globalPos());
+}
+
+void MyDateTimeEdit::onMenuNoneClicked()
+{
+    setNone();
+}
+
 CommonFormDialog::CommonFormDialog(const QList<QPair<QString, QVariant>> &data, int type, QWidget *parent) : QDialog(parent)
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);

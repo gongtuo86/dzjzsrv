@@ -85,6 +85,7 @@ CREATE TABLE xopensdb.低周减载轮次值表 (
     实际备用切荷量 FLOAT NULL,
     计划备用切荷量 FLOAT NULL,
     减载容量研判 TINYINT UNSIGNED NULL,
+    上次告警时间 INT NULL,
     CONSTRAINT pk_低周减载轮次参数表 PRIMARY KEY (编号)
 );
 
@@ -186,6 +187,7 @@ CREATE TABLE xopensdb.低周减载轮次项参数表 (
     关联开关 VARCHAR(24) NULL,
     有功代码 VARCHAR(24) NULL,
     关联装置 INT NULL,
+    关联出口 TINYINT UNSIGNED NULL,
     CONSTRAINT pk_低周减载轮次项参数表 PRIMARY KEY (编号)
 );
 
@@ -207,6 +209,7 @@ CREATE TABLE xopensdb.低周减载轮次项值表 (
     装置告警 TINYINT UNSIGNED NULL,
     实际备用切荷量 FLOAT NULL,
     计划备用切荷量 FLOAT NULL,
+    上次告警时间 INT NULL,
     CONSTRAINT pk_低周减载轮次项值表 PRIMARY KEY (编号)
 );
 
@@ -234,7 +237,7 @@ CREATE TABLE xopensdb.低周减载装置参数设定表 (
 );
 
 DROP VIEW IF EXISTS xopensdb.低周减载轮次项视图;
-CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区 , 分区名称 , 所属轮次 , 轮次名称 , 所属厂站 , 厂站名称 , 关联馈线 , 线路名称 , 负荷类型 , 投退计划 , 关联开关 , 开关名称 , 所属装置 , 装置名称 , 装置类型 , 功能类型 , 装置关联轮次项数 , 压板ID , 频率或电压定值ID , 动作延时定值ID , 告警信号ID , 动作信号ID , 频率或电压整定值 , 动作延时整定值 , 下发应切荷量 , 轮类型 , 轮类型名称 , 有功代码) AS
+CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区 , 分区名称 , 所属轮次 , 轮次名称 , 所属厂站 , 厂站名称 , 关联馈线 , 线路名称 , 负荷类型 , 投退计划 , 关联开关 , 开关名称 , 所属装置 , 装置名称 , 装置类型 , 功能类型 , 装置关联轮次项数 , 压板ID , 频率或电压定值ID , 动作延时定值ID , 告警信号ID , 动作信号ID , 频率或电压整定值 , 动作延时整定值 , 下发应切荷量 , 轮类型 , 轮类型名称 , 有功代码, 关联出口) AS
     SELECT 
         a.编号,
         a.名称,
@@ -265,7 +268,8 @@ CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区
         h.下发应切荷量,
         h.轮类型,
         j.名称,
-        a.有功代码
+        a.有功代码,
+        a.关联出口
     FROM
         低周减载轮次项参数表 a
             LEFT JOIN 低周减载装置参数表 e ON e.编号 = a.关联装置
@@ -569,7 +573,7 @@ CREATE TABLE xopenshdb.低周减载轮次历史值表 (
     应切荷量 FLOAT NULL,
     实际备用切荷量 FLOAT NULL,
     计划备用切荷量 FLOAT NULL,
-    减载容量研判 INT NULL,
+    减载容量研判 TINYINT UNSIGNED NULL,
     CONSTRAINT pk_低周减载轮次历史值表 PRIMARY KEY (时间 , 编号)
 );
 
@@ -674,6 +678,27 @@ CREATE TABLE IF NOT EXISTS xopenshdb.低周减载巡检详情表 (
     CONSTRAINT pk_低周减载巡检详情表 PRIMARY KEY (ID , 轮次项编号)
 );
 
+-- 存储过程
+use xopenshdb;
+DELIMITER //
+DROP PROCEDURE IF EXISTS dzjz_delete_old_records //
+CREATE PROCEDURE dzjz_delete_old_records()
+BEGIN
+  DELETE FROM xopenshdb.低周减载轮次项历史值表 WHERE 时间 < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR));
+  DELETE FROM xopenshdb.低周减载轮次历史值表 WHERE 时间 < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR));
+  DELETE FROM xopenshdb.低周减载轮次类型历史值表 WHERE 时间 < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR));
+  DELETE FROM xopenshdb.低周减载区域历史值表 WHERE 时间 < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR));
+  DELETE FROM xopenshdb.低周减载装置动作表 WHERE 时间 < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR));
+  DELETE FROM xopenshdb.低周减载轮次项动作表 WHERE 时间 < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 2 YEAR));
+END //
+
+DELIMITER ;
+
+DROP EVENT IF EXISTS dzjz_delete_old_records_event;
+CREATE EVENT dzjz_delete_old_records_event
+ON SCHEDULE EVERY 1 DAY STARTS (TIMESTAMP(CURRENT_DATE) + INTERVAL 2 HOUR)
+DO CALL dzjz_delete_old_records();
+
 -- 以下为测试记录
 USE xopensdb;
 
@@ -690,18 +715,18 @@ INSERT INTO 低周减载区域厂站关联表 VALUES('xy',2);
 INSERT INTO 低周减载区域厂站关联表 VALUES('zy',3);
 
 delete from 低周减载轮次参数表;
-insert into 低周减载轮次参数表 values(1,'长兴电网2023年低频减载第一轮',1,1,1,49,300,100);
-insert into 低周减载轮次参数表 values(2,'长兴电网2023年低频减载第二轮',1,1,2,49,300,100);
-insert into 低周减载轮次参数表 values(3,'长兴电网2023年低频减载第三轮',1,1,3,49,300,100);
-insert into 低周减载轮次参数表 values(4,'长兴电网2023年低频减载第四轮',1,1,4,49,300,100);
-insert into 低周减载轮次参数表 values(5,'长兴电网2023年低频减载第五轮',1,1,5,49,300,100);
-insert into 低周减载轮次参数表 values(6,'长兴电网2023年低频减载附加轮',1,1,6,49,300,100);
-insert into 低周减载轮次参数表 values(7,'长兴电网2023年低频减载特一轮',1,1,7,49,300,100);
-insert into 低周减载轮次参数表 values(8,'长兴电网2023年低频减载特二轮',1,1,8,49,300,100);
-insert into 低周减载轮次参数表 values(9,'长兴电网2023年低压减载第一轮',1,2,1,0.8,300,100);
-insert into 低周减载轮次参数表 values(10,'长兴电网2023年低压减载第二轮',1,2,2,0.85,300,100);
-insert into 低周减载轮次参数表 values(11,'长兴电网2023年低压减载特一轮',1,2,7,0.85,300,100);
-insert into 低周减载轮次参数表 values(12,'长兴电网2023年低压减载特二轮',1,2,8,0.85,300,100);
+insert into 低周减载轮次参数表 values(1,'低频减载第一轮',1,1,1,49,300,100);
+insert into 低周减载轮次参数表 values(2,'低频减载第二轮',1,1,2,49,300,100);
+insert into 低周减载轮次参数表 values(3,'低频减载第三轮',1,1,3,49,300,100);
+insert into 低周减载轮次参数表 values(4,'低频减载第四轮',1,1,4,49,300,100);
+insert into 低周减载轮次参数表 values(5,'低频减载第五轮',1,1,5,49,300,100);
+insert into 低周减载轮次参数表 values(6,'低频减载附加轮',1,1,6,49,300,100);
+insert into 低周减载轮次参数表 values(7,'低频减载特一轮',1,1,7,49,300,100);
+insert into 低周减载轮次参数表 values(8,'低频减载特二轮',1,1,8,49,300,100);
+insert into 低周减载轮次参数表 values(9,'低压减载第一轮',1,2,1,0.8,300,100);
+insert into 低周减载轮次参数表 values(10,'低压减载第二轮',1,2,2,0.85,300,100);
+insert into 低周减载轮次参数表 values(11,'低压减载特一轮',1,2,7,0.85,300,100);
+insert into 低周减载轮次参数表 values(12,'低压减载特二轮',1,2,8,0.85,300,100);
 
 
 delete from 低周减载轮次项参数表;

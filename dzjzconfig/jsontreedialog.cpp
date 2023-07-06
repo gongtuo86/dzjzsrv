@@ -65,7 +65,7 @@ JsonTreeModel::JsonTreeModel(const dfJson::Value &data, bool isMultiSelect, QObj
         parseJson(root, data);
     }
 
-    setHorizontalHeaderLabels({QString::fromLocal8Bit("Ãû³Æ")});
+    setHorizontalHeaderLabels({QString::fromLocal8Bit("Ãû³Æ"), QString::fromLocal8Bit("ID")});
 }
 
 /**
@@ -83,6 +83,7 @@ void JsonTreeModel::parseJson(QStandardItem *parent, const dfJson::Value &value)
         QString type = QString::fromLocal8Bit(value["type"].asCString());
 
         QStandardItem *nameItem = new QStandardItem(name);
+        QStandardItem *idItem = new QStandardItem(id);
         nameItem->setData(id);
 
         if (m_isMultiSelect)
@@ -101,7 +102,9 @@ void JsonTreeModel::parseJson(QStandardItem *parent, const dfJson::Value &value)
             }
         }
 
-        parent->appendRow(nameItem);
+        QList<QStandardItem *> rowItems;
+        rowItems << nameItem << idItem;
+        parent->appendRow(rowItems);
 
         if (value.isMember("children"))
         {
@@ -142,6 +145,7 @@ JsonTreeDialog::JsonTreeDialog(const dfJson::Value &data, bool isMultiSelect, QW
     ui->m_treeView->setModel(m_proxyModel);
     m_selectedIds.clear();
     ui->m_treeView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->m_treeView->header()->setResizeMode(QHeaderView::ResizeToContents);
 
     if (m_isMultiSelect)
     {

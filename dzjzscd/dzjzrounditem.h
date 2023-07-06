@@ -36,7 +36,6 @@ private:
     void valueJudge(TDZJZ_ROUNDITEM *pItme);
     void planJudge(TDZJZ_ROUNDITEM *pItem);
     void setStrapJudge(TDZJZ_ROUNDITEM *pItem);
-    void splitString(const char *str, std::vector<std::string> &ids);
     void strapJudge(TDZJZ_ROUNDITEM *pItem);
     void alarmJudge(TDZJZ_ROUNDITEM *pItem);
     void funcJudge(TDZJZ_ROUNDITEM *pItem);

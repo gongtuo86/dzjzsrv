@@ -79,6 +79,7 @@ public:
     char linkedBreak[DEF_CODE_LEN];
     char pName[DEF_CODE_LEN];
     int deviceId;
+    quint8 assocexit;
 };
 
 class SubstationDto

@@ -69,7 +69,8 @@ typedef struct
     uchar functype;                 // 轮次功能类型
     uchar devtype;                  // 装置类型
     char pname[24];                 // 有功代码
-    int lastAalrm;                  // 上次告警时间
+    int lastAalarm;                 // 上次告警时间
+    //uchar assocexit;                // 关联出口
 } TDZJZ_ROUNDITEM;
 
 /**
@@ -426,7 +427,9 @@ using RoundVecMap = std::unordered_map<int, RoundVec>;
 extern int ismainserver(void);
 extern std::string getFixedValue(float value, float time, int type);
 extern std::string getActionName(const char *actionID);
+extern std::string getStrapName(int nRtuNo, const char *id);
 extern int getMaxID(const char *tableName);
 extern std::string join(const std::vector<std::string> &items, const std::string &delimiter);
+extern void splitString(const char *str, std::vector<std::string> &ids, char delim);
 
 #endif // COMMON_H

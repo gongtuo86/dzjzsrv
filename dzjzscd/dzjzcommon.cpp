@@ -64,6 +64,58 @@ std::string getActionName(const char *actionID)
 }
 
 /**
+ * @brief 获取压板信号名称
+ *
+ * @param actionID
+ * @return std::string
+ */
+std::string getStrapName(int nRtuNo, const char *id)
+{
+    if (id == NULL || strlen(id) == 0)
+        return "";
+    std::vector<std::string> strapids;
+    splitString(id, strapids, ',');
+
+    std::vector<std::string> strapNames;
+
+    for (const auto &strapId : strapids)
+    {
+        std::vector<std::string> fieldVals;
+        splitString(strapId.c_str(), fieldVals, ':');
+
+        short type = std::stoi(fieldVals[0]);
+        short groupNo = std::stoi(fieldVals[1]);
+        short no = std::stoi(fieldVals[2]);
+
+        RdbSQL sql;
+        sql.selectfrom(DZJZ_DZ_TBLNAME);
+        sql.selectattr("desc");
+        sql.where("rtuno", DATATYPE_SHORT, &nRtuNo);
+        sql.where("type", DATATYPE_SHORT, &type);
+        sql.where("groupno", DATATYPE_SHORT, &groupNo);
+        sql.where("no", DATATYPE_SHORT, &no);
+        int nRet = sql.select(MyUserName, MyPassWord);
+        if (nRet != OK)
+        {
+            DFLOG_ERROR("failed to execute sql, nRet=%d id=%s", nRet, id);
+            continue;
+        }
+        int nRcdCnt = sql.getrcdcnt();
+        if (nRcdCnt <= 0)
+        {
+            DFLOG_ERROR("no data id=%s", id);
+            continue;
+        }
+
+        std::string name = sql.get_string(0, "desc");
+
+        strapNames.push_back(name);
+    }
+
+    return join(strapNames, ",");
+}
+
+/**
  * @brief Get the Max I D object
  *
  * @param tableName
@@ -109,6 +161,23 @@ std::string join(const std::vector<std::string> &items, const std::string &delim
         }
     }
     return result;
+}
+
+/**
+ * @brief 分割字符串
+ *
+ * @param str
+ * @param ids
+ */
+void splitString(const char *str, std::vector<std::string> &ids, char delim)
+{
+    ids.clear();
+    std::istringstream iss(str);
+    std::string strapid;
+    while (std::getline(iss, strapid, delim))
+    {
+        ids.push_back(strapid);
+    }
 }
 
 DZJZ_Event dzjzEnt;

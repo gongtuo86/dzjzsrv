@@ -7,13 +7,7 @@
 			"path": "../include"
 		},
 		{
-			"path": "../smmi/component/dfjson"
-		},
-		{
-			"path": "../smmi"
-		},
-		{
-			"path": "../network"
+			"path": "../dfdb"
 		}
 	],
 	"settings": {

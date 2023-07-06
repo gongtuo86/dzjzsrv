@@ -8,6 +8,8 @@
 #include <QVBoxLayout>
 #include <QVariant>
 #include <QDateTimeEdit>
+#include <QMenu>
+#include <QContextMenuEvent>
 
 #include "dfjson/json.h"
 
@@ -51,10 +53,19 @@ class MyDateTimeEdit : public QDateTimeEdit
     Q_OBJECT
 
 public:
-    MyDateTimeEdit(QWidget *parent = nullptr) : QDateTimeEdit(parent) {}
+    MyDateTimeEdit(QWidget *parent = nullptr);
+    void setNone();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
+
+private slots:
+    void onMenuNoneClicked();
+
+private:
+    QMenu *contextMenu;
+    QAction *noneAction;
 };
 
 class CommonFormDialog : public QDialog

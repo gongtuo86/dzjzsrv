@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 
     DFLogger::instance()->setRollingFileAppender(strLogPath.toStdString());
 
-    int intervalMinutes = 1; // 默认间隔为1分钟
+    int intervalMinutes = 60; // 默认间隔为1分钟
     // 解析命令参数
     for (int i = 1; i < argc; ++i)
     {

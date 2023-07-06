@@ -18,9 +18,77 @@
 #include "sybase.h"
 #include "unistd.h"
 
-sem_t semCalc;                                                                                                                                                                                            // 控制proc_cut_load_calc_thread线程是否开启
-static char *dzjzrounditemcol[] = {"name", "strapreal", "strapjudge", "realvalue", "realtime", "valuejudge", "pvalue", "activejudge", "planjudge", "funcjudge", "funcjudge", "judgepower", "breakstate"}; // 主备机同步域
+sem_t semCalc; // 控制proc_cut_load_calc_thread线程是否开启
 extern DZJZ_Event dzjzEnt;
+
+// 定义全局列集
+static std::vector<char *> dzjzrounditemcol = {
+    "id", "strapreal", "strapjudge", "realvalue", "realtime", "valuejudge", "pvalue", "activejudge", "planjudge",
+    "funcjudge", "judgepower", "breakstate", "linkedbreak", "devalarm", "standbypower", "planstandbypwr"};
+
+static std::vector<char *> dzjzroundcol = {
+    "id", "judgepower", "planpower", "requirepower", "issuepower", "standbypower", "planstandbypwr", "judgerequire",
+    "lastalarm"};
+
+static std::vector<char *> dzjzroundstacol = {
+    "id", "judgepower", "planpower", "realfeedernum", "planfeedernum", "realfeederrate", "planfeederrate", "requirepower",
+    "standbypower", "planstandbypwr", "realcomprate", "plancomprate", "realpowerrate", "planpowerrate", "realstandfn",
+    "planstandfn"};
+
+static std::vector<char *> dzjzareacol = {
+    "id", "judgepower", "planpower", "realfeedernum", "planfeedernum", "realfeederrate", "planfeederrate", "requirepower",
+    "standbypower", "planstandbypwr", "realcomprate", "plancomprate", "realpowerrate", "planpowerrate", "realstandfn",
+    "planstandfn"};
+
+static std::vector<char *> dzjzptaskcol = {
+    "id", "lastinspect"};
+
+/**
+ * @brief RDB数据同步函数
+ *
+ * @param tableName 需要同步的表名
+ * @param cols 需要同步的列集
+ */
+void rdbdatasync(char *tableName, std::vector<char *> cols)
+{
+    // 定义各种所需变量
+    int i, rcdnum, ret;
+    int id;
+    Vartype_value vtvalue;
+
+    // 创建RDB表和查询对象
+    Rsqlclient rsqlcli;
+    RdbSpeedyQuery spmemtbl(MyUserName, MyPassWord);
+    RdbTable rounditemtable(MyUserName, MyPassWord);
+
+    // 尝试打开RDB表
+    if (rounditemtable.OpenTable(tableName) != RDB_OK)
+        return;
+
+    // 选择要查询的表和列
+    rsqlcli.selectfrom(tableName);
+    for (const auto &col : cols)
+        rsqlcli.selectattr(col);
+
+    // 执行查询
+    ret = rsqlcli.select(MyUserName, MyPassWord);
+
+    // 如果查询成功，执行同步操作
+    if (ret == RDB_OK)
+    {
+        rcdnum = rsqlcli.getrcdcnt();
+        for (i = 0; i < rcdnum; i++)
+        {
+            id = rsqlcli.get_intval(i, "id");
+            for (const auto &col : cols)
+            {
+                ret = rsqlcli.GetColumnValue(i, col, &vtvalue);
+                spmemtbl.PutColumnValue(tableName, &id, col, &vtvalue);
+            }
+        }
+    }
+}
+
 /**
  * @brief 初始化
  *
@@ -29,38 +97,14 @@ void init_dzjzproc(void)
 {
     DFLOG_INFO("dzjz_server: init_dzjzproc start");
 
-    int i, j, rcdnum, colnum, ret;
-    char *keyp;
-    Break objbreak;
-    Rsqlclient rsqlcli;
-    Vartype_value vtvalue;
-    RdbSpeedyQuery spmemtbl(MyUserName, MyPassWord);
-    RdbTable rounditemtable(MyUserName, MyPassWord);
-    if (rounditemtable.OpenTable(DZJZ_ROUND_ITEM_TBLNAME) != RDB_OK)
-        return;
-
-    // 备机需快速同步计算本地值
-    colnum = sizeof(dzjzrounditemcol) / sizeof(char *);
+    // 如果不是主服务器，执行同步操作
     if (!ismainserver())
     {
-        rsqlcli.selectfrom(DZJZ_ROUND_ITEM_TBLNAME);
-        for (j = 0; j < colnum; j++)
-            rsqlcli.selectattr(dzjzrounditemcol[j]);
-        ret = rsqlcli.select(MyUserName, MyPassWord);
-
-        if (ret == RDB_OK)
-        {
-            rcdnum = rsqlcli.getrcdcnt();
-            for (i = 0; i < rcdnum; i++)
-            {
-                keyp = rsqlcli.get_string(i, "name");
-                for (j = 1; j < colnum; j++)
-                {
-                    ret = rsqlcli.GetColumnValue(i, dzjzrounditemcol[j], &vtvalue);
-                    spmemtbl.PutColumnValue(CUTBREAK_TBLNAME, keyp, dzjzrounditemcol[j], &vtvalue);
-                }
-            }
-        }
+        rdbdatasync(DZJZ_ROUND_ITEM_TBLNAME, dzjzrounditemcol);
+        rdbdatasync(DZJZ_ROUND_TBLNAME, dzjzroundcol);
+        rdbdatasync(DZJZ_AREA_TBLNAME, dzjzareacol);
+        rdbdatasync(DZJZ_ROUND_STATIC_TBLNAME, dzjzroundstacol);
+        rdbdatasync(DZJZ_PERIOD_INSPECT_TBLNAME, dzjzptaskcol);
     }
 
     DFLOG_INFO("dzjz_server: init_dzjzproc end");

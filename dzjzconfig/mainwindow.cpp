@@ -148,6 +148,8 @@ void MainWindow::setupRoundTree()
     ui->m_roundTreeView->setColumnHidden(5, true);
     ui->m_roundTreeView->setColumnHidden(6, true);
     ui->m_roundTreeView->setColumnHidden(7, true);
+
+    ui->m_roundTreeView->header()->setResizeMode(QHeaderView::ResizeToContents);
 }
 
 void MainWindow::setupRoundItemTable()
@@ -164,6 +166,7 @@ void MainWindow::setupRoundItemTable()
                                                               << QString::fromLocal8Bit("关联开关")
                                                               << QString::fromLocal8Bit("有功代码")
                                                               << QString::fromLocal8Bit("关联装置")
+                                                              << QString::fromLocal8Bit("关联出口")
                                                               << QString::fromLocal8Bit("操作"));
 
     // ui->m_roundItemTableView->setAlternatingRowColors(true);
@@ -190,8 +193,8 @@ void MainWindow::setupRoundItemTable()
     connect(ui->m_strapFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
     connect(ui->m_deviceFilterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(updateRoundItemFilter(int)));
 
-    // 禁止第10列排序
-    ui->m_roundItemTableView->horizontalHeader()->setResizeMode(10, QHeaderView::Interactive);
+    // 禁止第11列排序
+    ui->m_roundItemTableView->horizontalHeader()->setResizeMode(11, QHeaderView::Interactive);
 
     ui->m_roundItemTableView->setItemDelegateForColumn(2, new DMDelegateInt(m_pDbManager->m_subAreaIdNameMap, ui->m_roundItemTableView));
     ui->m_roundItemTableView->setItemDelegateForColumn(3, new DMDelegateInt(m_pDbManager->m_roundIdNameMap, ui->m_roundItemTableView));
@@ -206,7 +209,7 @@ void MainWindow::setupRoundItemTable()
     connect(m_BtnDelegateRoundItem, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonRoundItemClicked(QModelIndex)));
     connect(m_BtnDelegateRoundItem, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonRoundItemClicked(QModelIndex)));
     connect(m_BtnDelegateRoundItem, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonRoundItemClicked(QModelIndex)));
-    ui->m_roundItemTableView->setItemDelegateForColumn(10, m_BtnDelegateRoundItem);
+    ui->m_roundItemTableView->setItemDelegateForColumn(11, m_BtnDelegateRoundItem);
     connect(ui->m_addRoundItemPushButton, SIGNAL(clicked()), this, SLOT(onAddRoundItemButtonClicked()));
     connect(ui->m_roundItemEditPushButton, SIGNAL(clicked()), this, SLOT(onEditRoundItemButtonClicked()));
 
@@ -340,7 +343,6 @@ void MainWindow::onModuleItemClicked(QListWidgetItem *item)
     else if (index == 2)
     {
         readRoundTable();
-        ui->m_roundTreeView->resizeColumnToContents(0);
     }
     else if (index == 3)
     {
@@ -378,7 +380,6 @@ void MainWindow::populateRoundModel(const QVector<RoundDto> &roundList)
     }
 
     ui->m_roundTreeView->expandAll();
-    ui->m_roundTreeView->resizeColumnToContents(0);
     // int columnWidth = ui->m_roundTreeView->columnWidth(0);
     //  ui->m_roundTreeView->setFixedWidth(columnWidth);
 }
@@ -564,6 +565,7 @@ void MainWindow::populateAreaData(QList<QPair<QString, QVariant>> &data, const A
 AreaVo MainWindow::extractAreaData(const QList<QPair<QString, QVariant>> &updatedData)
 {
     AreaVo newArea;
+    memset(&newArea, 0, sizeof(newArea));
     for (const auto &pair : updatedData)
     {
         if (pair.first == QString::fromLocal8Bit("编号"))
@@ -623,6 +625,7 @@ void MainWindow::populateRoundData(QList<QPair<QString, QVariant>> &data, const 
 RoundDto MainWindow::extractRoundData(const QList<QPair<QString, QVariant>> &updatedData)
 {
     RoundDto newRound;
+    memset(&newRound, 0, sizeof(newRound));
     for (const auto &pair : updatedData)
     {
         if (pair.first == QString::fromLocal8Bit("编号"))
@@ -850,6 +853,7 @@ void MainWindow::populateRoundItemModel(const QVector<RoundItemDto> &roundItemLi
         m_roundItemModel->setItem(i, 7, new QStandardItem(roundItemList[i].linkedBreak));
         m_roundItemModel->setItem(i, 8, new QStandardItem(roundItemList[i].pName));
         m_roundItemModel->setItem(i, 9, new QStandardItem(QString::number(roundItemList[i].deviceId)));
+        m_roundItemModel->setItem(i, 10, new QStandardItem(QString::number(roundItemList[i].assocexit)));
     }
 }
 
@@ -879,6 +883,7 @@ void MainWindow::onAddRoundItemButtonClicked()
     strcpy(item.linkedBreak, "");
     strcpy(item.pName, "");
     item.deviceId = 0;
+    item.assocexit = 0;
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
@@ -1000,11 +1005,14 @@ void MainWindow::populateRoundItemData(QList<QPair<QString, QVariant>> &data, co
     deviceData.isMultiSelect = false;
     deviceData.jsonData = m_pDbManager->m_deviceJson;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联装置"), QVariant::fromValue(deviceData)));
+
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("关联出口"), item.assocexit));
 }
 
 RoundItemDto MainWindow::extractRoundItemData(const QList<QPair<QString, QVariant>> &updatedData)
 {
     RoundItemDto newRoundItem;
+    memset(&newRoundItem, 0, sizeof(newRoundItem));
     for (const auto &pair : updatedData)
     {
         if (pair.first == QString::fromLocal8Bit("编号"))
@@ -1046,6 +1054,10 @@ RoundItemDto MainWindow::extractRoundItemData(const QList<QPair<QString, QVarian
         else if (pair.first == QString::fromLocal8Bit("关联装置"))
         {
             newRoundItem.deviceId = pair.second.toInt();
+        }
+        else if (pair.first == QString::fromLocal8Bit("关联出口"))
+        {
+            newRoundItem.assocexit = pair.second.toInt();
         }
     }
     return newRoundItem;
@@ -1114,6 +1126,7 @@ void MainWindow::updateRoundItemModel(const RoundItemDto &newRoundItem, int row)
     m_roundItemModel->setItem(row, 7, new QStandardItem(newRoundItem.linkedBreak));
     m_roundItemModel->setItem(row, 8, new QStandardItem(newRoundItem.pName));
     m_roundItemModel->setItem(row, 9, new QStandardItem(QString::number(newRoundItem.deviceId)));
+    m_roundItemModel->setItem(row, 10, new QStandardItem(QString::number(newRoundItem.assocexit)));
 }
 
 void MainWindow::onDetailButtonRoundItemClicked(QModelIndex proxyIndex)
@@ -1132,6 +1145,7 @@ void MainWindow::onDetailButtonRoundItemClicked(QModelIndex proxyIndex)
     strncpy(item.linkedBreak, m_roundItemModel->index(sourceIndex.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
     strncpy(item.pName, m_roundItemModel->index(sourceIndex.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
     item.deviceId = m_roundItemModel->index(sourceIndex.row(), 9).data().toInt();
+    item.assocexit = m_roundItemModel->index(sourceIndex.row(), 10).data().toInt();
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
@@ -1180,6 +1194,7 @@ void MainWindow::onModifyButtonRoundItemClicked(QModelIndex proxyIndex)
     strncpy(item.linkedBreak, m_roundItemModel->index(sourceIndex.row(), 7).data().toString().toLocal8Bit().data(), sizeof(item.linkedBreak) - 1);
     strncpy(item.pName, m_roundItemModel->index(sourceIndex.row(), 8).data().toString().toLocal8Bit().data(), sizeof(item.pName) - 1);
     item.deviceId = m_roundItemModel->index(sourceIndex.row(), 9).data().toInt();
+    item.assocexit = m_roundItemModel->index(sourceIndex.row(), 10).data().toInt();
 
     QList<QPair<QString, QVariant>> data;
     populateRoundItemData(data, item);
@@ -1365,6 +1380,7 @@ void MainWindow::showDeviceDialog(const QList<QPair<QString, QVariant>> &data, i
 DeviceDto MainWindow::extractDeviceData(const QList<QPair<QString, QVariant>> &updatedData)
 {
     DeviceDto newDevice;
+    memset(&newDevice, 0, sizeof(newDevice));
     for (const auto &pair : updatedData)
     {
         if (pair.first == QString::fromLocal8Bit("编号"))
@@ -1479,13 +1495,13 @@ void MainWindow::populateDeviceParaData(QList<QPair<QString, QVariant>> &data, c
     JsonDialogData alarmData;
     alarmData.initialText = QString::fromLocal8Bit(devicePara.alarmId);
     alarmData.isMultiSelect = true;
-    alarmData.jsonData = m_pDbManager->m_tsJson;
+    alarmData.jsonData = m_pDbManager->getTSJson(devicePara.id);
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("告警信号ID"), QVariant::fromValue(alarmData)));
 
     JsonDialogData actionData;
     actionData.initialText = QString::fromLocal8Bit(devicePara.actionId);
     actionData.isMultiSelect = false;
-    actionData.jsonData = m_pDbManager->m_tsJson;
+    actionData.jsonData = m_pDbManager->getTSJson(devicePara.id);
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("动作信号ID"), QVariant::fromValue(actionData)));
 }
 
@@ -1548,6 +1564,7 @@ void MainWindow::updateDeviceParaModel(const DeviceParaDto &newDevice, int row)
 DeviceParaDto MainWindow::extractDeviceParaData(const QList<QPair<QString, QVariant>> &updatedData)
 {
     DeviceParaDto newDevicePara;
+    memset(&newDevicePara, 0, sizeof(newDevicePara));
     for (const auto &pair : updatedData)
     {
         if (pair.first == QString::fromLocal8Bit("装置编号"))
@@ -1726,6 +1743,7 @@ void MainWindow::onSetArea()
             return;
         }
         m_roundItemModel->setItem(sourceIndex.row(), 2, new QStandardItem(QString::number(newAreaId)));
+        m_pDbManager->loadRdb("低周减载轮次项视图");
     }
     ui->m_roundItemTableView->resizeColumnsToContents();
 }
@@ -1795,6 +1813,7 @@ void MainWindow::onSetRound()
             return;
         }
         m_roundItemModel->setItem(sourceIndex.row(), 3, new QStandardItem(QString::number(newRoundId)));
+        m_pDbManager->loadRdb("低周减载轮次项视图");
     }
     ui->m_roundItemTableView->resizeColumnsToContents();
 }
@@ -1826,6 +1845,7 @@ void MainWindow::onSetStrap()
             return;
         }
         m_roundItemModel->setItem(sourceIndex.row(), 6, new QStandardItem(QString::number(strapId)));
+        m_pDbManager->loadRdb("低周减载轮次项视图");
     }
     ui->m_roundItemTableView->resizeColumnsToContents();
 }
@@ -1857,6 +1877,7 @@ void MainWindow::onSetLoadType()
             return;
         }
         m_roundItemModel->setItem(sourceIndex.row(), 5, new QStandardItem(QString::number(loadType)));
+        m_pDbManager->loadRdb("低周减载轮次项视图");
     }
     ui->m_roundItemTableView->resizeColumnsToContents();
 }
@@ -1873,6 +1894,7 @@ void MainWindow::updateComboBox(QComboBox *comboBox, const QMap<int, QString> &m
         i.next();
         comboBox->addItem(i.value(), i.key());
     }
+    comboBox->addItem(QString::fromLocal8Bit("未定义"), 0);
 }
 
 void MainWindow::updateRoundItemFilter(int index)
@@ -2052,6 +2074,7 @@ void MainWindow::showTaskDialog(const QList<QPair<QString, QVariant>> &data, int
 TaskDto MainWindow::extractTaskData(const QList<QPair<QString, QVariant>> &updatedData)
 {
     TaskDto task;
+    memset(&task, 0, sizeof(task));
     for (const auto &pair : updatedData)
     {
         if (pair.first == QString::fromLocal8Bit("编号"))

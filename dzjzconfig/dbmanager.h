@@ -98,7 +98,8 @@ public:
 
     QVector<TSDto> getTSList();
     QMap<QString, QString> getTSNameMap(const QVector<TSDto> &list);
-    dfJson::Value getTSJson(const QVector<TSDto> &list);
+    dfJson::Value getTSJson(int nRtuNo);
+    //dfJson::Value getTSJson(int nRtuNo, const QVector<TSDto> &list);
 
     QVector<FixValueDto> getFixValueList();
     dfJson::Value getFixValueJson(int id);
@@ -160,7 +161,7 @@ public:
 
     QVector<TSDto> m_tsList;
     QMap<QString, QString> m_tsIdNameMap;
-    dfJson::Value m_tsJson;
+    //dfJson::Value m_tsJson;
 
     QVector<FixValueDto> m_fixValueList;
     QMap<QString, QString> m_fixValueMap;
