@@ -209,7 +209,7 @@ void MainWindow::setupRoundItemTable()
     connect(m_BtnDelegateRoundItem, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonRoundItemClicked(QModelIndex)));
     connect(m_BtnDelegateRoundItem, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonRoundItemClicked(QModelIndex)));
     connect(m_BtnDelegateRoundItem, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonRoundItemClicked(QModelIndex)));
-    ui->m_roundItemTableView->setItemDelegateForColumn(11, m_BtnDelegateRoundItem);
+    ui->m_roundItemTableView->setItemDelegateForColumn(m_roundItemModel->columnCount() - 1, m_BtnDelegateRoundItem);
     connect(ui->m_addRoundItemPushButton, SIGNAL(clicked()), this, SLOT(onAddRoundItemButtonClicked()));
     connect(ui->m_roundItemEditPushButton, SIGNAL(clicked()), this, SLOT(onEditRoundItemButtonClicked()));
 
@@ -276,6 +276,7 @@ void MainWindow::setupDeviceParaTable()
                                                                << QString::fromLocal8Bit("动作延时定值ID")
                                                                << QString::fromLocal8Bit("告警信号ID")
                                                                << QString::fromLocal8Bit("动作信号ID")
+                                                               << QString::fromLocal8Bit("出口矩阵ID")
                                                                << QString::fromLocal8Bit("操作"));
 
     // ui->m_tableViewDevicePara->setAlternatingRowColors(true);
@@ -289,12 +290,13 @@ void MainWindow::setupDeviceParaTable()
     ui->m_tableViewDevicePara->setItemDelegateForColumn(4, new DMDelegateString(m_pDbManager->m_fixValueMap, ui->m_tableViewDevicePara));
     ui->m_tableViewDevicePara->setItemDelegateForColumn(5, new DMDelegateMulti<QString>(m_pDbManager->m_tsIdNameMap, ui->m_tableViewDevicePara));
     ui->m_tableViewDevicePara->setItemDelegateForColumn(6, new DMDelegateString(m_pDbManager->m_tsIdNameMap, ui->m_tableViewDevicePara));
+    ui->m_tableViewDevicePara->setItemDelegateForColumn(7, new DMDelegateString(m_pDbManager->m_fixValueMap, ui->m_tableViewDevicePara));
 
     m_BtnDelegateDevicePara = new OperationDelegate(ui->m_tableViewDevicePara);
     connect(m_BtnDelegateDevicePara, SIGNAL(detailButtonClicked(QModelIndex)), this, SLOT(onDetailButtonDeviceParaClicked(QModelIndex)));
     connect(m_BtnDelegateDevicePara, SIGNAL(deleteButtonClicked(QModelIndex)), this, SLOT(onDeleteButtonDeviceParaClicked(QModelIndex)));
     connect(m_BtnDelegateDevicePara, SIGNAL(modifyButtonClicked(QModelIndex)), this, SLOT(onModifyButtonDeviceParaClicked(QModelIndex)));
-    ui->m_tableViewDevicePara->setItemDelegateForColumn(7, m_BtnDelegateDevicePara);
+    ui->m_tableViewDevicePara->setItemDelegateForColumn(m_deviceParaModel->columnCount() - 1, m_BtnDelegateDevicePara);
     connect(ui->m_pushButtonDevicePara, SIGNAL(clicked()), this, SLOT(onAddDeviceParaButtonClicked()));
 
     connect(ui->m_callPushButton, SIGNAL(clicked()), this, SLOT(onCallButtonClicked()));
@@ -1458,11 +1460,15 @@ void MainWindow::populateDeviceParaModel(const QVector<DeviceParaDto> &list)
         m_deviceParaModel->setItem(i, 4, new QStandardItem(QString::fromLocal8Bit(list[i].timeValueId)));
         m_deviceParaModel->setItem(i, 5, new QStandardItem(QString::fromLocal8Bit(list[i].alarmId)));
         m_deviceParaModel->setItem(i, 6, new QStandardItem(QString::fromLocal8Bit(list[i].actionId)));
+        m_deviceParaModel->setItem(i, 7, new QStandardItem(QString::fromLocal8Bit(list[i].exitId)));
     }
 }
 
 void MainWindow::populateDeviceParaData(QList<QPair<QString, QVariant>> &data, const DeviceParaDto &devicePara)
 {
+    dfJson::Value fixValueJson = m_pDbManager->getFixValueJson(devicePara.id);
+    dfJson::Value tsJson = m_pDbManager->getTSJson(devicePara.id);
+
     JsonDialogData rtuData;
     rtuData.initialText = QString::number(devicePara.id);
     rtuData.isMultiSelect = false;
@@ -1477,32 +1483,38 @@ void MainWindow::populateDeviceParaData(QList<QPair<QString, QVariant>> &data, c
     JsonDialogData strapData;
     strapData.initialText = QString::fromLocal8Bit(devicePara.strapId);
     strapData.isMultiSelect = true;
-    strapData.jsonData = m_pDbManager->getFixValueJson(devicePara.id);
+    strapData.jsonData = fixValueJson;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("压板ID"), QVariant::fromValue(strapData)));
 
     JsonDialogData fixValueData;
     fixValueData.initialText = QString::fromLocal8Bit(devicePara.fixValueId);
     fixValueData.isMultiSelect = false;
-    fixValueData.jsonData = m_pDbManager->getFixValueJson(devicePara.id);
+    fixValueData.jsonData = fixValueJson;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("频率或电压定值ID"), QVariant::fromValue(fixValueData)));
 
     JsonDialogData timeData;
     timeData.initialText = QString::fromLocal8Bit(devicePara.timeValueId);
     timeData.isMultiSelect = false;
-    timeData.jsonData = m_pDbManager->getFixValueJson(devicePara.id);
+    timeData.jsonData = fixValueJson;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("动作延时定值ID"), QVariant::fromValue(timeData)));
 
     JsonDialogData alarmData;
     alarmData.initialText = QString::fromLocal8Bit(devicePara.alarmId);
     alarmData.isMultiSelect = true;
-    alarmData.jsonData = m_pDbManager->getTSJson(devicePara.id);
+    alarmData.jsonData = tsJson;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("告警信号ID"), QVariant::fromValue(alarmData)));
 
     JsonDialogData actionData;
     actionData.initialText = QString::fromLocal8Bit(devicePara.actionId);
     actionData.isMultiSelect = false;
-    actionData.jsonData = m_pDbManager->getTSJson(devicePara.id);
+    actionData.jsonData = tsJson;
     data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("动作信号ID"), QVariant::fromValue(actionData)));
+
+    JsonDialogData exitData;
+    exitData.initialText = QString::fromLocal8Bit(devicePara.exitId);
+    exitData.isMultiSelect = false;
+    exitData.jsonData = fixValueJson;
+    data.append(QPair<QString, QVariant>(QString::fromLocal8Bit("出口矩阵ID"), QVariant::fromValue(exitData)));
 }
 
 void MainWindow::showDeviceParaDialog(const QList<QPair<QString, QVariant>> &data, int act, const QModelIndex &index)
@@ -1559,6 +1571,7 @@ void MainWindow::updateDeviceParaModel(const DeviceParaDto &newDevice, int row)
     m_deviceParaModel->setItem(row, 4, new QStandardItem(newDevice.timeValueId));
     m_deviceParaModel->setItem(row, 5, new QStandardItem(newDevice.alarmId));
     m_deviceParaModel->setItem(row, 6, new QStandardItem(newDevice.actionId));
+    m_deviceParaModel->setItem(row, 7, new QStandardItem(newDevice.exitId));
 }
 
 DeviceParaDto MainWindow::extractDeviceParaData(const QList<QPair<QString, QVariant>> &updatedData)
@@ -1595,6 +1608,10 @@ DeviceParaDto MainWindow::extractDeviceParaData(const QList<QPair<QString, QVari
         {
             strncpy(newDevicePara.actionId, pair.second.toString().toLocal8Bit().data(), sizeof(newDevicePara.actionId) - 1);
         }
+        else if (pair.first == QString::fromLocal8Bit("出口矩阵ID"))
+        {
+            strncpy(newDevicePara.exitId, pair.second.toString().toLocal8Bit().data(), sizeof(newDevicePara.exitId) - 1);
+        }
     }
     return newDevicePara;
 }
@@ -1612,6 +1629,7 @@ void MainWindow::onAddDeviceParaButtonClicked()
     strncpy(devicePara.timeValueId, "", sizeof(devicePara.timeValueId) - 1);
     strncpy(devicePara.alarmId, "", sizeof(devicePara.alarmId) - 1);
     strncpy(devicePara.actionId, "", sizeof(devicePara.actionId) - 1);
+    strncpy(devicePara.exitId, "", sizeof(devicePara.exitId) - 1);
 
     QList<QPair<QString, QVariant>> data;
     populateDeviceParaData(data, devicePara);
@@ -1630,6 +1648,7 @@ void MainWindow::onDetailButtonDeviceParaClicked(QModelIndex index)
     strncpy(devicePara.timeValueId, m_deviceParaModel->index(index.row(), 4).data().toString().toLocal8Bit().data(), sizeof(devicePara.timeValueId) - 1);
     strncpy(devicePara.alarmId, m_deviceParaModel->index(index.row(), 5).data().toString().toLocal8Bit().data(), sizeof(devicePara.alarmId) - 1);
     strncpy(devicePara.actionId, m_deviceParaModel->index(index.row(), 6).data().toString().toLocal8Bit().data(), sizeof(devicePara.actionId) - 1);
+    strncpy(devicePara.exitId, m_deviceParaModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(devicePara.exitId) - 1);
 
     QList<QPair<QString, QVariant>> data;
     populateDeviceParaData(data, devicePara);
@@ -1648,6 +1667,7 @@ void MainWindow::onModifyButtonDeviceParaClicked(QModelIndex index)
     strncpy(devicePara.timeValueId, m_deviceParaModel->index(index.row(), 4).data().toString().toLocal8Bit().data(), sizeof(devicePara.timeValueId) - 1);
     strncpy(devicePara.alarmId, m_deviceParaModel->index(index.row(), 5).data().toString().toLocal8Bit().data(), sizeof(devicePara.alarmId) - 1);
     strncpy(devicePara.actionId, m_deviceParaModel->index(index.row(), 6).data().toString().toLocal8Bit().data(), sizeof(devicePara.actionId) - 1);
+    strncpy(devicePara.exitId, m_deviceParaModel->index(index.row(), 7).data().toString().toLocal8Bit().data(), sizeof(devicePara.exitId) - 1);
 
     QList<QPair<QString, QVariant>> data;
     populateDeviceParaData(data, devicePara);

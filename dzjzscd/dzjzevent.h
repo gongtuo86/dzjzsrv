@@ -18,4 +18,8 @@ public:
     int make_judgefunc_event(TDZJZ_ROUNDITEM *pItem);
     int make_capacity_event(TDZJZ_ROUND *pItem, int act);
     int make_action_event(SYS_CLOCK &time, int deviceID, const std::string &deviceName, const std::vector<TDZJZ_ROUNDITEM> &roundItemVec, int act);
+    int make_active_event(TDZJZ_ROUNDITEM *pItem, int act);
+    int make_exit_event(TDZJZ_ROUNDITEM *pItem, int act);
+    int make_alarm_event(TDZJZ_ROUNDITEM *pItem, int act);
+    int make_funcJudge_event(TDZJZ_ROUNDITEM *pItem, int act);
 };

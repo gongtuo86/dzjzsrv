@@ -187,6 +187,8 @@ void DZJZ_RoundItem::freshRealValue(TDZJZ_ROUNDITEM *pItem)
     valueJudge(pItem);
     planJudge(pItem);
     strapJudge(pItem);
+    alarmJudge(pItem);
+    exitJudge(pItem);
     funcJudge(pItem);
     calcPower(pItem);
 
@@ -243,16 +245,33 @@ void DZJZ_RoundItem::activeJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem == nullptr)
         return;
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pItem->lastAalarm;
+
     const bool bAlarm = pItem->pvalue <= -1e-7;
 
     if (pItem->activejudge != bAlarm)
     {
         pItem->activejudge = bAlarm;
+        pItem->lastAalarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (bAlarm)
-            DFLOG_INFO("item %d 有源馈线告警", pItem->id);
+        {
+            dzjzEnt.make_active_event(pItem, 1);
+        }
         else
-            DFLOG_INFO("item %d 有源馈线告警恢复", pItem->id);
+        {
+            dzjzEnt.make_active_event(pItem, 0);
+        }
+    }
+    else
+    {
+        if (bAlarm && seconds >= ALARM_OVER_TIME)
+        {
+            pItem->lastAalarm = now;
+            dzjzEnt.make_active_event(pItem, 1);
+        }
     }
 }
 
@@ -263,7 +282,7 @@ void DZJZ_RoundItem::activeJudge(TDZJZ_ROUNDITEM *pItem)
  */
 void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
 {
-    if (pItem == nullptr)
+    if (pItem == nullptr || pItem->realvalueid[0] == '\0' || pItem->realtimeid[0] == '\0')
     {
         return;
     }
@@ -305,21 +324,18 @@ void DZJZ_RoundItem::valueJudge(TDZJZ_ROUNDITEM *pItem)
         if (bAlarm)
         {
             dzjzEnt.make_judgevalue_event(pItem, 1);
-            DFLOG_INFO("pItem %d 定值研判告警", pItem->id);
         }
         else
         {
             dzjzEnt.make_judgevalue_event(pItem, 0);
-            DFLOG_INFO("pItem %d 定值研判恢复", pItem->id);
         }
     }
     else
     {
-        if (bAlarm && seconds >= 86400)
+        if (bAlarm && seconds >= ALARM_OVER_TIME)
         {
             pItem->lastAalarm = now;
             dzjzEnt.make_judgevalue_event(pItem, 1);
-            DFLOG_INFO("pItem %d 定值研判告警", pItem->id);
         }
     }
 }
@@ -347,7 +363,6 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
             pItem->lastAalarm = now;
             RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
             dzjzEnt.make_judgeplan_event(pItem, 0);
-            DFLOG_INFO("pItem %d 方案研判恢复", pItem->id);
         }
         return;
     }
@@ -360,21 +375,18 @@ void DZJZ_RoundItem::planJudge(TDZJZ_ROUNDITEM *pItem)
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (bAlarm)
         {
-            DFLOG_INFO("pItem %d 方案研判告警", pItem->id);
             dzjzEnt.make_judgeplan_event(pItem, 1);
         }
         else
         {
-            DFLOG_INFO("pItem %d 方案研判恢复", pItem->id);
             dzjzEnt.make_judgeplan_event(pItem, 0);
         }
     }
     else
     {
-        if (bAlarm && seconds >= 86400)
+        if (bAlarm && seconds >= ALARM_OVER_TIME)
         {
             pItem->lastAalarm = now;
-            DFLOG_INFO("pItem %d 方案研判告警", pItem->id);
             dzjzEnt.make_judgeplan_event(pItem, 1);
         }
     }
@@ -402,15 +414,13 @@ void DZJZ_RoundItem::setStrapJudge(TDZJZ_ROUNDITEM *pItem)
         pItem->strapjudge = strapJudge;
         pItem->lastAalarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
-        DFLOG_INFO("pItem %d 功能压板状态[%s]", pItem->id, s_stapArr[strapJudge]);
         dzjzEnt.make_judgefunc_event(pItem);
     }
     else
     {
-        if (seconds >= 86400 && (strapJudge == 1 || strapJudge == 2))
+        if (seconds >= ALARM_OVER_TIME && (strapJudge == 1 || strapJudge == 2))
         {
             pItem->lastAalarm = now;
-            DFLOG_INFO("pItem %d 功能压板状态[%s]", pItem->id, s_stapArr[strapJudge]);
             dzjzEnt.make_judgefunc_event(pItem);
         }
     }
@@ -429,7 +439,6 @@ void DZJZ_RoundItem::strapJudge(TDZJZ_ROUNDITEM *pItem)
     std::vector<std::string> strapids;
     splitString(pItem->strapid, strapids, ',');
 
-    Protsig status;
     uchar tmpVal;
     uchar strapVal = 0x01;
     // 有一个压板未投入，就不算投入
@@ -442,7 +451,7 @@ void DZJZ_RoundItem::strapJudge(TDZJZ_ROUNDITEM *pItem)
         }
         else
         {
-            DFLOG_WARN("%s can not find", valueKey.c_str());
+            DFLOG_WARN("strap id %s can not find", valueKey.c_str());
             tmpVal = STAVAL_OFF;
         }
         if (tmpVal != STAVAL_ON)
@@ -466,6 +475,10 @@ void DZJZ_RoundItem::alarmJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem == nullptr || pItem->alarmid[0] == '\0')
         return;
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pItem->lastAalarm;
+
     std::vector<std::string> alarmids;
     splitString(pItem->alarmid, alarmids, ',');
     uchar tmpVal;
@@ -476,10 +489,15 @@ void DZJZ_RoundItem::alarmJudge(TDZJZ_ROUNDITEM *pItem)
     // 有一个告警信号就告警
     for (const std::string &alarmId : alarmids)
     {
-        if (status.getdata(const_cast<char *>(alarmId.c_str()), &tmpVal) == OK && tmpVal == STAVAL_ON)
+        int bOK = status.getdata(const_cast<char *>(alarmId.c_str()), &tmpVal);
+        if ((bOK == OK) && tmpVal == STAVAL_ON)
         {
             nAlarm = 0x01;
             break;
+        }
+        else if (bOK != OK)
+        {
+            DFLOG_WARN("pItem %d can not find alarmid %s", pItem->id, alarmId.c_str());
         }
     }
 
@@ -488,9 +506,21 @@ void DZJZ_RoundItem::alarmJudge(TDZJZ_ROUNDITEM *pItem)
         pItem->devalarm = nAlarm;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
         if (nAlarm == 0x01)
-            DFLOG_INFO("pItem %d 装置告警");
+        {
+            dzjzEnt.make_alarm_event(pItem, 1);
+        }
         else
-            DFLOG_INFO("pItem %d 装置告警恢复");
+        {
+            dzjzEnt.make_alarm_event(pItem, 0);
+        }
+    }
+    else
+    {
+        if (nAlarm && seconds >= ALARM_OVER_TIME)
+        {
+            pItem->lastAalarm = now;
+            dzjzEnt.make_alarm_event(pItem, 1);
+        }
     }
 
     return;
@@ -516,6 +546,10 @@ void DZJZ_RoundItem::funcJudge(TDZJZ_ROUNDITEM *pItem)
     if (pItem == nullptr)
         return;
 
+    intertime now;
+    get_intertime(&now);
+    int seconds = now - pItem->lastAalarm;
+
     bool valJudge = false;
 
     valJudge = !isStrapNormal(pItem->strapjudge) || pItem->valuejudge || pItem->devalarm || pItem->activejudge;
@@ -527,11 +561,19 @@ void DZJZ_RoundItem::funcJudge(TDZJZ_ROUNDITEM *pItem)
 
         if (valJudge)
         {
-            DFLOG_INFO("pItem %d 轮次项功能研判告警", pItem->id);
+            dzjzEnt.make_funcJudge_event(pItem, 1);
         }
         else
         {
-            DFLOG_INFO("pItem %d 轮次项功能研判恢复", pItem->id);
+            dzjzEnt.make_funcJudge_event(pItem, 0);
+        }
+    }
+    else
+    {
+        if (valJudge && seconds >= ALARM_OVER_TIME)
+        {
+            pItem->lastAalarm = now;
+            dzjzEnt.make_funcJudge_event(pItem, 1);
         }
     }
 }
@@ -553,4 +595,61 @@ void DZJZ_RoundItem::calcPower(TDZJZ_ROUNDITEM *pItem)
 
     // 计划备用切荷量 = 馈线负荷*计划备用
     pItem->planStandbyPower = pItem->pvalue * (!pItem->strapplan);
+}
+
+/**
+ * @brief 低周减载出口研判
+ *
+ * @param pItem
+ */
+void DZJZ_RoundItem::exitJudge(TDZJZ_ROUNDITEM *pItem)
+{
+    // 如果 pItem 是 NULL 或者 exitid 是空的，直接返回
+    if (pItem == NULL || pItem->exitid[0] == '\0')
+    {
+        return;
+    }
+
+    std::string valueKey = std::to_string(pItem->deviceid) + ":" + std::string(pItem->exitid);
+
+    intertime now;
+    get_intertime(&now);
+    int elapsedSeconds = now - pItem->lastAalarm; // 更有意义的变量名
+
+    // 尝试在 m_dzjzDZMap 中找到值
+    auto it = m_dzjzDZMap.find(valueKey);
+    if (it == m_dzjzDZMap.end())
+    {
+        pItem->exitjudge = 0;
+        DFLOG_WARN("pItem %d cant not find exitid %s.", pItem->id, valueKey.c_str());
+        return;
+    }
+
+    int actualValue = std::stoi(it->second->value); // 更有意义的变量名
+    int plannedValue = pItem->assocexit - 1;        // 更有意义的变量名
+
+    // 取对应出口的投入状态
+    int valBitN = (actualValue >> plannedValue) & 0x01;
+
+    bool isAlarm = (valBitN != 1); // 更有意义的变量名
+
+    // DFLOG_DEBUG("exitJudge:valueKey=%s actualValue=%d plannedValue=%d valBitN=%d isAlarm=%d",
+    //             valueKey.c_str(), actualValue, plannedValue, valBitN, isAlarm);
+
+    if (isAlarm != pItem->exitjudge)
+    {
+        pItem->exitjudge = isAlarm;
+        pItem->lastAalarm = now;
+        RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_ITEM_TBLNAME);
+        DFLOG_DEBUG("pItem %d actualValue=%d plannedValue=%d", actualValue, plannedValue);
+        dzjzEnt.make_exit_event(pItem, isAlarm ? 1 : 0); // 使用条件运算符简化代码
+    }
+    else
+    {
+        if (isAlarm && elapsedSeconds >= ALARM_OVER_TIME)
+        {
+            pItem->lastAalarm = now;
+            dzjzEnt.make_exit_event(pItem, 1);
+        }
+    }
 }

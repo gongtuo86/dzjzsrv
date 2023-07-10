@@ -590,7 +590,7 @@ void DZJZ_CalcTool::judgeRequire(TDZJZ_ROUND *pRound)
     }
     else
     {
-        if (seconds >= 86400 && bAlarm)
+        if (seconds >= ALARM_OVER_TIME && bAlarm)
         {
             pRound->lastAlarm = now;
             dzjzEnt.make_capacity_event(pRound, 1);

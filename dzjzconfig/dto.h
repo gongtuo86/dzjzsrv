@@ -126,6 +126,7 @@ public:
     char timeValueId[DEF_CODE_LEN];
     char alarmId[256];
     char actionId[DEF_CODE_LEN];
+    char exitId[DEF_CODE_LEN];
 };
 
 class FixValueDto

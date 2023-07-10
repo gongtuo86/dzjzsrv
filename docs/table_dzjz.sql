@@ -210,6 +210,7 @@ CREATE TABLE xopensdb.低周减载轮次项值表 (
     实际备用切荷量 FLOAT NULL,
     计划备用切荷量 FLOAT NULL,
     上次告警时间 INT NULL,
+    出口矩阵研判 TINYINT UNSIGNED NULL,
     CONSTRAINT pk_低周减载轮次项值表 PRIMARY KEY (编号)
 );
 
@@ -233,11 +234,12 @@ CREATE TABLE xopensdb.低周减载装置参数设定表 (
     动作延时定值ID VARCHAR(24) NULL,
     告警信号ID VARCHAR(256) NULL,
     动作信号ID VARCHAR(24) NULL,
+    出口矩阵ID VARCHAR(24) NULL,
     CONSTRAINT pk_低周减载装置参数设定表 PRIMARY KEY (所属装置 , 轮次编号)
 );
 
 DROP VIEW IF EXISTS xopensdb.低周减载轮次项视图;
-CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区 , 分区名称 , 所属轮次 , 轮次名称 , 所属厂站 , 厂站名称 , 关联馈线 , 线路名称 , 负荷类型 , 投退计划 , 关联开关 , 开关名称 , 所属装置 , 装置名称 , 装置类型 , 功能类型 , 装置关联轮次项数 , 压板ID , 频率或电压定值ID , 动作延时定值ID , 告警信号ID , 动作信号ID , 频率或电压整定值 , 动作延时整定值 , 下发应切荷量 , 轮类型 , 轮类型名称 , 有功代码, 关联出口) AS
+CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区 , 分区名称 , 所属轮次 , 轮次名称 , 所属厂站 , 厂站名称 , 关联馈线 , 线路名称 , 负荷类型 , 投退计划 , 关联开关 , 开关名称 , 所属装置 , 装置名称 , 装置类型 , 功能类型 , 装置关联轮次项数 , 压板ID , 频率或电压定值ID , 动作延时定值ID , 告警信号ID , 动作信号ID , 频率或电压整定值 , 动作延时整定值 , 下发应切荷量 , 轮类型 , 轮类型名称 , 有功代码, 关联出口, 出口矩阵ID) AS
     SELECT 
         a.编号,
         a.名称,
@@ -269,7 +271,8 @@ CREATE VIEW xopensdb.低周减载轮次项视图 (编号 , 名称 , 所属分区
         h.轮类型,
         j.名称,
         a.有功代码,
-        a.关联出口
+        a.关联出口,
+        f.出口矩阵ID
     FROM
         低周减载轮次项参数表 a
             LEFT JOIN 低周减载装置参数表 e ON e.编号 = a.关联装置
@@ -323,6 +326,9 @@ INSERT INTO 实时库列模式 VALUES('functype','功能类型','dzjzrounditem',
 INSERT INTO 实时库列模式 VALUES('devtype','装置类型','dzjzrounditem',0,0,0,1,360,360,0,0);
 INSERT INTO 实时库列模式 VALUES('pname','有功代码','dzjzrounditem',24,10,0,1,370,370,0,0);
 INSERT INTO 实时库列模式 VALUES('lastalarm','上次告警时间','dzjzrounditem',0,5,0,2,380,380,0,0);
+INSERT INTO 实时库列模式 VALUES('assocexit','关联出口','dzjzrounditem',0,0,0,1,390,390,0,0);
+INSERT INTO 实时库列模式 VALUES('exitid','出口矩阵ID','dzjzrounditem',24,10,0,1,400,400,0,0);
+INSERT INTO 实时库列模式 VALUES('exitjudge','出口矩阵研判','dzjzrounditem',0,0,0,2,410,410,0,0);
 
 DROP TABLE IF EXISTS xopensdb.低周减载周期巡检任务表;
 CREATE TABLE IF NOT EXISTS xopensdb.低周减载周期巡检任务表 (

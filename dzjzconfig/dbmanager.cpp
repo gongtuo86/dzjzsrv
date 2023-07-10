@@ -381,7 +381,7 @@ QString DBManager::getStaByRtuId(int rtuId)
 QVector<DeviceParaDto> DBManager::getDeviceParaList(int id)
 {
     QString query = QString::fromLocal8Bit(
-                        "select 所属装置,轮次编号,压板ID,频率或电压定值ID,动作延时定值ID,告警信号ID,动作信号ID"
+                        "select 所属装置,轮次编号,压板ID,频率或电压定值ID,动作延时定值ID,告警信号ID,动作信号ID,出口矩阵ID"
                         " from xopensdb.低周减载装置参数设定表 where 所属装置=%1 order by 所属装置,轮次编号")
                         .arg(id);
     return getList<DeviceParaDto>(query);

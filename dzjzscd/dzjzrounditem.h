@@ -40,6 +40,7 @@ private:
     void alarmJudge(TDZJZ_ROUNDITEM *pItem);
     void funcJudge(TDZJZ_ROUNDITEM *pItem);
     void calcPower(TDZJZ_ROUNDITEM *pItem);
+    void exitJudge(TDZJZ_ROUNDITEM *pItem);
     void printItemJson(TDZJZ_ROUNDITEM *pItem);
     void init();
     bool isStrapNormal(int strapJudge);

@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../dfdb"
+		},
+		{
+			"path": "../scada"
 		}
 	],
 	"settings": {

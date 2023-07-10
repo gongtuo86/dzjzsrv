@@ -23,6 +23,8 @@ enum DZJZ_LOADTYPE
 
 const int ALL_AREA_ID = 1;
 
+const int ALARM_OVER_TIME = 86400; // 再次告警间隔
+
 extern const char *s_stapArr[];
 
 /**
@@ -70,7 +72,9 @@ typedef struct
     uchar devtype;                  // 装置类型
     char pname[24];                 // 有功代码
     int lastAalarm;                 // 上次告警时间
-    //uchar assocexit;                // 关联出口
+    uchar assocexit;                // 关联出口
+    char exitid[DEF_CODE_LEN];      // 出口id
+    uchar exitjudge;                // 出口研判
 } TDZJZ_ROUNDITEM;
 
 /**
