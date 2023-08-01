@@ -229,7 +229,7 @@ void DZJZ_RoundItem::freshBreakValue(TDZJZ_ROUNDITEM *pItem)
         Protsig protsig;
         if (protsig.getdata(pItem->linkedbreak, &pItem->breakstate) != OK)
         {
-            DFLOG_ERROR("开关 %s 遥信不存在", pItem->linkedbreak);
+            DFLOG_WARN("开关 %s 遥信不存在", pItem->linkedbreak);
         }
     }
     // DFLOG_DEBUG("开关 %s 遥信值=%d", pItem->linkedbreak, pItem->breakstate);

@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "../scada"
+		},
+		{
+			"path": "../smmi"
 		}
 	],
 	"settings": {
