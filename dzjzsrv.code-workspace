@@ -7,13 +7,10 @@
 			"path": "../include"
 		},
 		{
-			"path": "../dfdb"
+			"path": "../network"
 		},
 		{
-			"path": "../scada"
-		},
-		{
-			"path": "../smmi"
+			"path": "../smmi/tools/alarmapplogin4"
 		}
 	],
 	"settings": {
