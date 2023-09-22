@@ -1,6 +1,7 @@
 #ifndef WSListener_hpp
 #define WSListener_hpp
 
+#include <atomic>
 #include "ThreadPool.h"
 #include "oatpp-websocket/ConnectionHandler.hpp"
 #include "oatpp-websocket/WebSocket.hpp"
@@ -16,8 +17,12 @@ private:
 private:
     oatpp::data::stream::BufferOutputStream m_messageBuffer;
     oatpp::String m_id;
-    const WebSocket* m_socket;
+    const WebSocket* m_socket = nullptr;
 
+public:
+    std::thread m_eventThread;
+    std::atomic<bool> m_stopEventThread{false}; // 事项线程停止标志
+    
 public:
     WSListener(const WebSocket* socket, const oatpp::String& id) : m_socket(socket), m_id(id){};
     void onPing(const WebSocket& socket, const oatpp::String& message) override;
@@ -26,6 +31,7 @@ public:
     void readMessage(const WebSocket& socket, v_uint8 opcode, p_char8 data, oatpp::v_io_size size) override;
     oatpp::String getId();
     void sendMessage(const oatpp::String& message);
+    void handleRealEvent();
 };
 
 /**

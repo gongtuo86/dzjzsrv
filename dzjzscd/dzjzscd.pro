@@ -38,14 +38,19 @@ HEADERS += \
             dzjzevent.h \
             dzjzcalctool.h \
             dzjzactionstatis.h \
-            dzjzinspect.h
+            dzjzinspect.h \
+            dzjzfilegenerator.h \
+            dzjzupload.h
+
 SOURCES	+= \
             dzjzcommon.cpp \
             dzjzrounditem.cpp \
             dzjzevent.cpp \
             dzjzcalctool.cpp \
             dzjzactionstatis.cpp \
-            dzjzinspect.cpp
+            dzjzinspect.cpp \
+            dzjzfilegenerator.cpp \
+
 
 
   

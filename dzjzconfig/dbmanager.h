@@ -192,8 +192,10 @@ int DBManager::insertTable(const T &record, const char *tableName)
     func.serverno = SERVER_DEFAULT;
     sprintf(func.table, "%s", tableName);
     int ret = dbfgettableinfo(&func, &datafmt);
-    DFLOG_DEBUG("recordlen=%d", func.recorderlen);
-    DFLOG_DEBUG("structlen=%d", sizeof(T));
+    if( func.recorderlen != sizeof(T) )
+    {
+        DFLOG_WARN("%s 结构体和数据库结构不一致", tableName);
+    }
 
     if (ret == CS_SUCCEED)
     {

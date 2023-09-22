@@ -31,7 +31,7 @@ INCLUDEPATH +=  \
                 ../include \
                 ../dzjzscd
 
-LIBS += -L$(RUNHOME)/bin -L$(RUNHOME)/lib -ldfnet -ldflogger -ldzjzscd -ldorbase -lexdb -lscd_dll
+LIBS += -L$(RUNHOME)/bin -L$(RUNHOME)/lib -ldfnet -ldflogger -ldzjzscd -ldorbase -lexdb -lscd_dll -ldfjson
 
 SOURCES +=  \
           main.cpp \

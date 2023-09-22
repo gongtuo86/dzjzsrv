@@ -73,6 +73,7 @@ CREATE TABLE xopensdb.低周减载轮次参数表 (
     频率或电压整定值 FLOAT NULL,
     动作延时整定值 FLOAT NULL,
     下发应切荷量 FLOAT NULL,
+    计划切荷比例 FLOAT NULL,
     CONSTRAINT pk_低周减载轮次参数表 PRIMARY KEY (编号)
 );
 
@@ -86,6 +87,7 @@ CREATE TABLE xopensdb.低周减载轮次值表 (
     计划备用切荷量 FLOAT NULL,
     减载容量研判 TINYINT UNSIGNED NULL,
     上次告警时间 INT NULL,
+    实际切荷比例 FLOAT NULL,
     CONSTRAINT pk_低周减载轮次参数表 PRIMARY KEY (编号)
 );
 
@@ -108,6 +110,8 @@ insert into 实时库列模式 values('standbypower','实际备用切荷量','dzjzround',0,8,
 insert into 实时库列模式 values('planstandbypwr','计划备用切荷量','dzjzround',0,8,0,2,90,90,0,0);
 insert into 实时库列模式 values('judgerequire','减载容量研判','dzjzround',0,0,0,2,100,100,0,0);
 insert into 实时库列模式 values('lastalarm','上次告警时间','dzjzround',0,5,0,2,110,110,0,0);
+insert into 实时库列模式 values('planpwrrate','计划切荷比例','dzjzround',0,8,0,1,120,120,0,0);
+insert into 实时库列模式 values('realpwrrate','实际切荷比例','dzjzround',0,8,0,2,130,130,0,0);
 
 -- 轮次类型
 DROP TABLE IF EXISTS xopensdb.低周减载轮次类型表;
@@ -144,7 +148,7 @@ insert into 低周减载轮次类型表 values(2,'第二轮');
 insert into 低周减载轮次类型表 values(3,'第三轮');
 insert into 低周减载轮次类型表 values(4,'第四轮');
 insert into 低周减载轮次类型表 values(5,'第五轮');
-insert into 低周减载轮次类型表 values(6,'附加轮');
+insert into 低周减载轮次类型表 values(6,'第六轮');
 insert into 低周减载轮次类型表 values(7,'特一轮');
 insert into 低周减载轮次类型表 values(8,'特二轮');
 
@@ -224,6 +228,35 @@ CREATE TABLE xopensdb.低周减载装置参数表 (
     所属厂站 CHAR(4) NULL,
     CONSTRAINT pk_低周减载装置参数表 PRIMARY KEY (编号)
 );
+
+DROP TABLE IF EXISTS xopensdb.低周减载装置参数值表;
+CREATE TABLE xopensdb.低周减载装置参数表 (
+    编号 INT NOT NULL,
+    告警状态 TINYINT UNSIGNED NULL,
+    软压板研判结论 TINYINT UNSIGNED NULL,
+    软压板研判失败原因 TINYINT UNSIGNED NULL,
+    硬压板研判结论 TINYINT UNSIGNED NULL,
+    硬压板研判失败原因 TINYINT UNSIGNED NULL,
+    定值研判结论 TINYINT UNSIGNED NULL,
+    定值研判失败原因 TINYINT UNSIGNED NULL,
+    CONSTRAINT pk_低周减载装置参数值表 PRIMARY KEY (编号)
+);
+
+DELETE FROM 实时库表模式 WHERE 代码 = 'dzjzdev';
+INSERT INTO 实时库表模式 VALUES('dzjzdev','低周减载装置参数表',1068,'scadadb','SCADA','scada',1,1,1,1,2000,'id','','','','','','低周减载装置参数表','低周减载装置参数值表','','','',0,1,'',0,'','','','',0,0,'','');
+DELETE FROM 实时库列模式 WHERE 表代码 = 'dzjzdev';
+INSERT INTO 实时库列模式 VALUES('id','编号','dzjzdev',0,5,0,1,0,0,0,0);
+INSERT INTO 实时库列模式 VALUES('name','名称','dzjzdev',256,10,0,1,10,10,0,0);
+INSERT INTO 实时库列模式 VALUES('ofsta','所属厂站','dzjzdev',4,10,0,1,20,20,0,0);
+INSERT INTO 实时库列模式 VALUES('type','装置类型','dzjzdev',0,0,0,1,30,30,0,0);
+INSERT INTO 实时库列模式 VALUES('alarm','告警状态','dzjzdev',0,0,0,2,40,40,0,0);
+INSERT INTO 实时库列模式 VALUES('sfret','软压板研判结论','dzjzdev',0,0,0,2,50,50,0,0);
+INSERT INTO 实时库列模式 VALUES('sfreason','软压板研判失败原因','dzjzdev',0,0,0,2,60,60,0,0);
+INSERT INTO 实时库列模式 VALUES('diret','硬压板研判结论','dzjzdev',0,0,0,2,70,70,0,0);
+INSERT INTO 实时库列模式 VALUES('direason','硬压板研判失败原因','dzjzdev',0,0,0,2,80,80,0,0);
+INSERT INTO 实时库列模式 VALUES('sgret','定值研判结论','dzjzdev',0,0,0,2,90,90,0,0);
+INSERT INTO 实时库列模式 VALUES('sgreason','定值研判失败原因','dzjzdev',0,0,0,2,100,100,0,0);
+
 
 DROP TABLE IF EXISTS xopensdb.低周减载装置参数设定表;
 CREATE TABLE xopensdb.低周减载装置参数设定表 (
@@ -425,7 +458,7 @@ delete from DM配置表
 where
     配置类型 = '低周减载投退计划类型';
 insert into DM配置表 values('低周减载投退计划类型','投入',1,'');
-insert into DM配置表 values('低周减载投退计划类型','备用',0,'');
+insert into DM配置表 values('低周减载投退计划类型','退出',0,'');
 
 delete from DM配置表 
 where
@@ -546,6 +579,7 @@ delete from 程序注册表
 where
     代码 = 'dzjzk';
 insert into 程序注册表 values('dzjzk', '低压减载轮次应切荷量的K系数',0,1.3,'',0);
+insert into 程序注册表 values('dzjzmax', '低压减载年度计划最高负荷',0,0,'',0);
 
 delete from 事项类型表 
 where
@@ -577,9 +611,12 @@ CREATE TABLE xopenshdb.低周减载轮次历史值表 (
     投运切荷量 FLOAT NULL,
     计划切荷量 FLOAT NULL,
     应切荷量 FLOAT NULL,
+    下发切荷量 FLOAT NULL,
     实际备用切荷量 FLOAT NULL,
     计划备用切荷量 FLOAT NULL,
     减载容量研判 TINYINT UNSIGNED NULL,
+    计划切荷比例 FLOAT NULL,
+    实际切荷比例 FLOAT NULL,
     CONSTRAINT pk_低周减载轮次历史值表 PRIMARY KEY (时间 , 编号)
 );
 
@@ -652,6 +689,11 @@ CREATE TABLE xopenshdb.低周减载轮次项动作表 (
     轮类型名称 VARCHAR(256),
     动作信号ID VARCHAR(24),
     动作信号名称 VARCHAR(256),
+    装置ID INT NULL,
+    装置名称 VARCHAR(256),
+    装置类型 TINYINT UNSIGNED,
+    轮次功能类型 TINYINT UNSIGNED,
+    所属厂站 CHAR(4),
     CONSTRAINT pk_低周减载轮次项动作表 PRIMARY KEY (动作ID , 时间 , 轮次项ID)
 );
 

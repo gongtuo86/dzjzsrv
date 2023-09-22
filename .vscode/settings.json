@@ -1,0 +1,31 @@
+{
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash",
+            "env": {
+                "LANG": "zh_CN.gb2312"
+            }
+        },
+        "zsh": {
+            "path": "zsh"
+        },
+        "fish": {
+            "path": "fish"
+        },
+        "tmux": {
+            "path": "tmux",
+            "icon": "terminal-tmux"
+        },
+        "pwsh": {
+            "path": "pwsh",
+            "icon": "terminal-powershell"
+        }
+    },
+    "files.associations": {
+        "qtextstream": "cpp",
+        "future": "cpp",
+        "system_error": "cpp",
+        "regex": "cpp"
+    }
+}

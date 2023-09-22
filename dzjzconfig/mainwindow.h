@@ -16,6 +16,16 @@
 class QListWidgetItem;
 class OperationDelegate;
 class DBManager;
+class RightManage4;
+
+struct BaseFileConfig
+{
+    char **value;
+    char **time;
+    char **require;
+    char **requireRate;
+    int count;
+};
 
 namespace Ui
 {
@@ -83,7 +93,14 @@ private:
     TaskDto extractTaskData(const QList<QPair<QString, QVariant>> &updatedData);
     void updateTaskModel(const TaskDto &newTask, int row = -1);
 
-private slots:
+    void setupRoundFileModel();
+    dfJson::Value getJsonConfig(const dfJson::Value &jFile, const char *key);
+    QList<QStandardItem *> generateRowItems(const RoundDto &roundDB, const dfJson::Value &jRow, const BaseFileConfig &config, int index);
+    void generateStandardItem(float dbValue, const QString &fileValue, QList<QStandardItem *> &items);
+
+public slots:
+    void OnLogin();
+
     void onModuleItemClicked(QListWidgetItem *item);
 
     void onDetailButtonAreaClicked(QModelIndex index);
@@ -132,6 +149,9 @@ private slots:
     void onDeleteButtonTaskClicked(QModelIndex index);
     void onModifyButtonTaskClicked(QModelIndex index);
 
+    void onSelectRoundFile();
+    void onImportRoundFileToDB();
+
 private:
     Ui::MainWindow *ui;
     DBManager *m_pDbManager;
@@ -160,6 +180,10 @@ private:
     QMenu *m_setRoundMenu;
     QMenu *m_setStrapMenu;
     QMenu *m_setLoadTypeMenu;
+
+    RightManage4 *m_pRightManage;
+
+    QStandardItemModel *m_roundFileModel;
 };
 
 #endif // MAINWINDOW_H

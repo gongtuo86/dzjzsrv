@@ -4,11 +4,12 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "D:\\DF1900\\source\\include\\**",
+                "D:\\DF8003HT\\DF1900\\source\\include\\**",
+                "D:\\DF8003HT\\DF1900\\source\\smmi\\uiplat\\rightManage4\\rightmanage4\\**",
                 "D:\\mingw64\\opt\\include\\**",
                 "D:\\linuxinclude\\**",
-                "D:\\DF1900\\source\\smmi\\component\\dfjson\\**",
-                "D:\\DF1900\\source\\scada\\include\\**",
+                "D:\\DF8003HT\\DF1900\\source\\smmi\\component\\dfjson\\**",
+                "D:\\DF8003HT\\DF1900\\source\\scada\\include\\**",
                 "D:\\DF1900\\tmp\\dzjzsrv\\dzjzconfig\\ui\\**",
                 "C:\\Qt\\4.8.7\\include\\**"
             ],
@@ -24,17 +25,50 @@
             "browse": {
                 "path": [
                     "${workspaceFolder}",
-                    "D:\\DF1900\\source\\include\\",
+                    "D:\\DF8003HT\\DF1900\\source\\include\\",
+                    "D:\\DF8003HT\\DF1900\\source\\smmi\\uiplat\\rightManage4\\rightmanage4\\",
                     "D:\\mingw64\\opt\\include",
                     "D:\\linuxinclude\\",
-                    "D:\\DF1900\\source\\smmi\\component\\dfjson\\",
-                    "D:\\DF1900\\source\\scada\\include\\",
+                    "D:\\DF8003HT\\DF1900\\source\\smmi\\component\\dfjson\\",
+                    "D:\\DF8003HT\\DF1900\\source\\scada\\include\\",
                     "D:\\DF1900\\tmp\\dzjzsrv\\dzjzconfig\\ui\\",
                     "C:\\Qt\\4.8.7\\include\\"
                 ],
                 "limitSymbolsToIncludedHeaders": false
             },
             "compilerPath": "D:\\mingw64\\bin\\g++.exe",
+            "cStandard": "c99",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "gcc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/local/include/**",
+                "/usr/include/**"
+                // 添加你自己的Linux特定路径
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "DF8003S",
+                "__unix",
+                "__linux",
+                "RDB_OS_LINUX"
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "/usr/local/include",
+                    "/usr/include"
+                    // 添加你自己的Linux特定路径
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c99",
             "cppStandard": "c++11",
             "intelliSenseMode": "gcc-x64",

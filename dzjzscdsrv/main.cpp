@@ -17,6 +17,7 @@
 #include "rdbscd.h"
 #include "sybase.h"
 #include "unistd.h"
+#include "dzjzupload.h"
 
 sem_t semCalc; // 控制proc_cut_load_calc_thread线程是否开启
 extern DZJZ_Event dzjzEnt;
@@ -257,7 +258,7 @@ UINT proc_auto_judge_thread(LPVOID pParam)
     {
         // DFLOG_DEBUG("dzjz_server: proc_auto_judge_thread loop start");
         apevent.apentloop(1);
-        if (loop_count % 10 == 0)  // 1秒
+        if (loop_count % 10 == 0) // 1秒
         {
             roundItem.freshData(); // 自动研判分析
         }
@@ -323,6 +324,26 @@ UINT proc_period_inspect_thread(LPVOID pParam)
     periodInspect.start();
 
     DFLOG_INFO("dzjz_server: proc_period_inspect_thread end");
+
+    return NULL;
+}
+
+/**
+ * @brief 周期上送线程
+ *
+ */
+#ifdef __unix
+void *proc_period_upload_thread(void *p)
+#else
+UINT proc_period_upload_thread(LPVOID pParam)
+#endif
+{
+    DFLOG_INFO("dzjz_server: proc_period_upload_thread start");
+
+    DZJZ_Upload periodUpload;
+    periodUpload.start();
+
+    DFLOG_INFO("dzjz_server: proc_period_upload_thread end");
 
     return NULL;
 }
@@ -454,6 +475,7 @@ int main(int argc, char **argv)
     scd_pthread_create(proc_auto_judge_thread, NULL, 100);
     scd_pthread_create(proc_cut_load_calc_thread, NULL, 100);
     scd_pthread_create(proc_period_inspect_thread, NULL, 100);
+    scd_pthread_create(proc_period_upload_thread, NULL, 100);
 
     // 启动检测父进程线程
     scd_pthread_create(proc_checkparent_thread, NULL, 100);

@@ -87,14 +87,16 @@ typedef struct
     char name[256];         // 名称
     uchar funtype;          // 功能类型
     int roundtype;          // 轮类型
-    float judgepower;       // 投运切荷量
-    float planpower;        // 计划切荷量
-    float requirePower;     // 应切荷量
-    float issuePower;       // 下发切荷量
-    float standbyPower;     // 备用切荷量
-    float planStandbyPower; // 计划备用切荷量
-    uchar judgeRequire;     // 投运切荷量研判
+    float judgepower;       // 投运切荷量      SUM(有功*计划投入*功能正常的轮次项)
+    float planpower;        // 计划投运切荷量  SUM(有功*计划投入的轮次项)
+    float requirePower;     // 应切荷量        下发计划切荷量*K
+    float issuePower;       // 下发切荷量       省调下发
+    float standbyPower;     // 备用切荷量      SUM(有功*计划备用*功能正常的轮次项)
+    float planStandbyPower; // 计划备用切荷量   SUM(有功*计划备用的轮次项)
+    uchar judgeRequire;     // 投运切荷量研判 =0 正常 =1-可切不足 =2 过切
     int lastAlarm;          // 上次告警时间
+    float planPowerRate;    // 计划切荷比例     下发计划切荷比例
+    float realPowerRate;    // 实际切荷比例      (投运切荷量/总负荷)*100%
 } TDZJZ_ROUND;
 
 /**
@@ -233,6 +235,8 @@ public:
     float standbyPower;     // 备用切荷量
     float planStandbyPower; // 计划备用切荷量
     uchar judgeRequire;     // 投运切荷量研判
+    float planPowerRate;    // 计划切荷比例
+    float realPowerRate;    // 实际切荷比例
 
     TDZJZ_ROUND_HISTORY() = default;
     TDZJZ_ROUND_HISTORY(int time, const TDZJZ_ROUND &data)
@@ -246,6 +250,8 @@ public:
         this->standbyPower = data.standbyPower;
         this->planStandbyPower = data.planStandbyPower;
         this->judgeRequire = data.judgeRequire;
+        this->planPowerRate = data.planPowerRate;
+        this->realPowerRate = data.realPowerRate;
     }
 };
 
@@ -342,6 +348,11 @@ public:
     char roundTypeName[256];             // 轮次类型名称
     char actionID[DEF_CODE_LEN];         // 动作ID
     char actionName[256];                // 动作名称
+    int deviceID;                        // 装置ID
+    char deviceName[256];                // 装置名称
+    uchar deviceType;                    // 装置类型
+    uchar roundFuncType;                 // 轮次功能类型
+    char ofSta[SUBSTATION_LEN];          // 所属厂站
     TDZJZ_ACTION_ROUND_ITEM() = default; // 构造函数
 };
 
@@ -409,7 +420,7 @@ public:
     uchar funcJudge;    // 总告警
 };
 
-class T_DZJZ_DZ
+class TDZJZ_DZ
 {
 public:
     short rtuno;
@@ -420,6 +431,22 @@ public:
     char desc[160];
     char unit[5];
     char vtype[20];
+};
+
+class TDZJZ_DEVICE
+{
+public:
+    int id;
+    char name[256];
+    char ofSta[SUBSTATION_LEN];
+    uchar type;
+    uchar alarm;
+    uchar sfRet;
+    uchar sfReason;
+    uchar diRet;
+    uchar diReason;
+    uchar sgRet;
+    uchar sgReason;
 };
 
 using RoundItemVec = std::vector<TDZJZ_ROUNDITEM *>;

@@ -1,0 +1,16 @@
+<! system=地区电网 version=1.0 type=ufvls_plan code=UTF-8 data=1.0 datetime='20210719112807' !>
+<配置方案标志::地区电网>
+@ id areaname is_require_rate
+// 序号 地区名 是否使用应切荷比例
+# 1 地区A 0
+</配置方案标志::地区电网>
+<低频配置方案::地区电网>
+@ id areaname uf_base1_require uf_base1_require_rate uf_base1_freq uf_base1_time uf_base2_require uf_base2_require_rate uf_base2_freq uf_base2_time uf_base3_require uf_base3_require_rate uf_base3_freq uf_base3_time uf_base4_require uf_base4_require_rate uf_base4_freq uf_base4_time uf_base5_require uf_base5_require_rate uf_base5_freq uf_base5_time uf_base6_require uf_base6_require_rate uf_base6_freq uf_base6_time uf_spec1_require uf_spec1_require_rate uf_spec1_freq uf_spec1_time uf_spec2_require uf_spec2_require_rate uf_spec2_freq uf_spec2_time 
+// 序号 地区名 第一轮应切荷量 第一轮应切荷比例 第一轮动作频率 第一轮动作延时 第二轮应切荷量 第二轮应切荷比例 第二轮动作频率 第二轮动作延时 第三轮应切荷量 第三轮应切荷比例 第三轮动作频率 第三轮动作延时 第四轮应切荷量 第四轮应切荷比例 第四轮动作频率 第四轮动作延时 第五轮应切荷量 第五轮应切荷比例 第五轮动作频率 第五轮动作延时 第六轮应切荷量 第六轮应切荷比例 第六轮动作频率 第六轮动作延时 特一轮应切荷量 特一轮应切荷比例 特一轮动作频率 特一轮动作延时 特二轮应切荷量 特二轮应切荷比例 特二轮动作频率 特二轮动作延时 
+# 1 地区A 120 0 49.00 0.3 100 0 48.75 0.3 100 0 48.50 0.3 100 0 48.25 0.3 100 0 48.00 0.3 100 0 47.50 0.3 120 0 49.00 15 120 0 49.00 20
+</低频配置方案::地区电网>
+<低压配置方案::地区电网>
+@ id areaname uv_base1_require uv_base1_require_rate uv_base1_volt uv_base1_time uv_base2_require uv_base2_require_rate uv_base2_volt uv_base2_time uv_spec1_require uv_spec1_require_rate uv_spec1_volt uv_spec1_time uv_spec2_require uv_spec2_require_rate uv_spec2_volt uv_spec2_time
+// 序号 地区名 第一轮应切荷量 第一轮应切荷比例 第一轮动作电压比例 第一轮动作延时 第二轮应切荷量 第二轮应切荷比例 第二轮动作电压比例 第二轮动作延时 特一轮应切荷量 特一轮应切荷比例 特一轮动作电压比例 特一轮动作延时 特二轮应切荷量 特二轮应切荷比例 特二轮动作电压比例 特二轮动作延时
+# 1 地区A 120 0 0.85 3 100 0 0.80 1
+</低压配置方案::地区电网>

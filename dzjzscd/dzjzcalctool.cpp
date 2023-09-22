@@ -13,31 +13,37 @@
 
 #include "dflogger.h"
 #include "dzjzevent.h"
+#include "dzjzsrv.h"
 
 extern DZJZ_Event dzjzEnt;
 
-int DZJZ_CalcTool::opentblf = 0;                               // 实时库表打开标志
+int DZJZ_CalcTool::opentblf = 0; // 实时库表打开标志
 
-RdbTable DZJZ_CalcTool::roundTbl;                              // 轮次表
-RdbTable DZJZ_CalcTool::roundItemTbl;                          // 轮次项表
-RdbTable DZJZ_CalcTool::areaTbl;                               // 区域表
-RdbTable DZJZ_CalcTool::roundStaTbl;                           // 轮次统计表
-RdbTable DZJZ_CalcTool::progTbl;                               // 程序注册表
+RdbTable DZJZ_CalcTool::roundTbl;     // 轮次表
+RdbTable DZJZ_CalcTool::roundItemTbl; // 轮次项表
+RdbTable DZJZ_CalcTool::areaTbl;      // 区域表
+RdbTable DZJZ_CalcTool::roundStaTbl;  // 轮次统计表
+RdbTable DZJZ_CalcTool::progTbl;      // 程序注册表
+RdbTable DZJZ_CalcTool::deviceTbl;    // 装置表
 
-int DZJZ_CalcTool::roundTblTime = 0;                           // 轮次表加载时间
-int DZJZ_CalcTool::roundItemTblTime = 0;                       // 轮次项表加载时间
-int DZJZ_CalcTool::areaTblTime = 0;                            // 区域表加载时间
-int DZJZ_CalcTool::roundStaTblTime = 0;                        // 伦次统计表加载时间
-int DZJZ_CalcTool::progTblTime = 0;                            // 程序注册表加载时间
+int DZJZ_CalcTool::roundTblTime = 0;     // 轮次表加载时间
+int DZJZ_CalcTool::roundItemTblTime = 0; // 轮次项表加载时间
+int DZJZ_CalcTool::areaTblTime = 0;      // 区域表加载时间
+int DZJZ_CalcTool::roundStaTblTime = 0;  // 伦次统计表加载时间
+int DZJZ_CalcTool::progTblTime = 0;      // 程序注册表加载时间
+int DZJZ_CalcTool::deviceTblTime = 0;    // 装置表加载时间
 
-ItemVecMap DZJZ_CalcTool::roundItemMap;                        // 轮次项和轮次关系
-ItemVecMap DZJZ_CalcTool::areaItemMap;                         // 轮次项和区域关系
-ItemVecMap DZJZ_CalcTool::roundTypeItemMap;                    // 轮次项和轮次统计表关系
-RoundVecMap DZJZ_CalcTool::roundTypeRoundMap;                  // 轮次类型和轮次关系
+ItemVecMap DZJZ_CalcTool::roundItemMap;       // 轮次项和轮次关系
+ItemVecMap DZJZ_CalcTool::areaItemMap;        // 轮次项和区域关系
+ItemVecMap DZJZ_CalcTool::roundTypeItemMap;   // 轮次项和轮次统计表关系
+ItemVecMap DZJZ_CalcTool::deviceItemMap;      // 轮次项和轮次统计表关系
+RoundVecMap DZJZ_CalcTool::roundTypeRoundMap; // 轮次类型和轮次关系
 
 float DZJZ_CalcTool::dzjzk = GetProgramRunPara("dzjzk", 1.0f); // K系数
 TDZJZ_AREA *DZJZ_CalcTool::pAllArea = NULL;                    // 全网区域计算
 float DZJZ_CalcTool::sumP = 0.0f;                              // 全网负荷
+
+float DZJZ_CalcTool::dzjzMaxP = GetProgramRunPara("dzjzmap", 0.0f); // 年度计划最高负荷
 
 /**
  * @brief 构造函数
@@ -45,65 +51,42 @@ float DZJZ_CalcTool::sumP = 0.0f;                              // 全网负荷
  */
 DZJZ_CalcTool::DZJZ_CalcTool(void)
 {
+    struct TableInfo
+    {
+        RdbTable *table;
+        char *tableName;
+        int expectedRecordLength;
+    };
+
     if (!opentblf)
     {
-        if (roundTbl.Login(MyUserName, MyPassWord) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-        if (roundTbl.OpenTable(DZJZ_ROUND_TBLNAME) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
+        TableInfo tables[] = {
+            {&roundTbl, DZJZ_ROUND_TBLNAME, sizeof(TDZJZ_ROUND)},
+            {&roundItemTbl, DZJZ_ROUND_ITEM_TBLNAME, sizeof(TDZJZ_ROUNDITEM)},
+            {&areaTbl, DZJZ_AREA_TBLNAME, sizeof(TDZJZ_AREA)},
+            {&progTbl, PROGRAMREGIST_TBLNAME, 0},
+            {&roundStaTbl, DZJZ_ROUND_STATIC_TBLNAME, sizeof(TDZJZ_ROUNDSTA)},
+            {&deviceTbl, DZJZ_DEVICE_TBLNAME, sizeof(TDZJZ_DEVICE)}};
 
-        if (roundItemTbl.Login(MyUserName, MyPassWord) != RDB_OK)
+        for (auto &tblInfo : tables)
         {
-            opentblf = 0;
-            return;
-        }
-        if (roundItemTbl.OpenTable(DZJZ_ROUND_ITEM_TBLNAME) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-
-        if (areaTbl.Login(MyUserName, MyPassWord) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-        if (areaTbl.OpenTable(DZJZ_AREA_TBLNAME) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-
-        if (progTbl.Login(MyUserName, MyPassWord) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-        if (progTbl.OpenTable(PROGRAMREGIST_TBLNAME) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-
-        if (roundStaTbl.Login(MyUserName, MyPassWord) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
-        }
-        if (roundStaTbl.OpenTable(DZJZ_ROUND_STATIC_TBLNAME) != RDB_OK)
-        {
-            opentblf = 0;
-            return;
+            if (tblInfo.table->Login(MyUserName, MyPassWord) != RDB_OK)
+            {
+                opentblf = 0;
+                return;
+            }
+            if (tblInfo.table->OpenTable(tblInfo.tableName) != RDB_OK)
+            {
+                opentblf = 0;
+                return;
+            }
+            if (tblInfo.expectedRecordLength && tblInfo.table->GetRecordLength() != tblInfo.expectedRecordLength)
+            {
+                DFLOG_ERROR("%s 结构不一致", tblInfo.tableName);
+            }
         }
 
         opentblf = 1;
-
         checkModify();
     }
 }
@@ -121,6 +104,7 @@ void DZJZ_CalcTool::Calc()
     calcRound();
     calcRoundSta();
     calcArea();
+    calcDevice();
 }
 
 /**
@@ -160,6 +144,11 @@ void DZJZ_CalcTool::calcRound()
         pRound->requirePower = pRound->issuePower * dzjzk;
         pRound->standbyPower = standbyPower;
         pRound->planStandbyPower = planStandbyPower;
+        if (!ISZERO(sumP))
+        {
+            pRound->realPowerRate = pRound->judgepower / sumP * 100;
+        }
+
         nAllRequirePower += pRound->requirePower;
 
         judgeRequire(pRound);
@@ -244,19 +233,22 @@ void DZJZ_CalcTool::calcRoundSta()
 
         // 计算轮次类型应切荷量
         float requirePower = 0.0f;
+        // float planPowerRate = 0.0f;
         const RoundVec &roundVec = roundTypeRoundMap[pRoundSta->id];
         const int roundSize = roundItemVec.size();
         // DFLOG_DEBUG("id:%d round count:%d", pRoundSta->id, roundSize);
         for (const auto &round : roundVec)
         {
             requirePower += round->requirePower;
+            // planPowerRate += round->planPowerRate;
         }
         pRoundSta->requirePower = requirePower;
+        // pRoundSta->planPowerRate = planPowerRate;
 
         if (!ISZERO(pRoundSta->requirePower))
         {
-            pRoundSta->realCompRate = std::min(static_cast<float>(100, pRoundSta->judgepower / pRoundSta->requirePower * 100), 100.0f);
-            pRoundSta->planCompRate = std::min(static_cast<float>(100, pRoundSta->planpower / pRoundSta->requirePower * 100), 100.0f);
+            pRoundSta->realCompRate = std::min(pRoundSta->judgepower / pRoundSta->requirePower * 100, 100.0f);
+            pRoundSta->planCompRate = std::min(pRoundSta->planpower / pRoundSta->requirePower * 100, 100.0f);
         }
         else
         {
@@ -266,18 +258,82 @@ void DZJZ_CalcTool::calcRoundSta()
 
         if (!ISZERO(sumP))
         {
-            pRoundSta->realPowerRate = std::min(static_cast<float>(100, pRoundSta->judgepower / sumP * 100), 100.0f);
-            pRoundSta->planPowerRate = std::min(static_cast<float>(100, pRoundSta->planpower / sumP * 100), 100.0f);
+            pRoundSta->realPowerRate = std::min(pRoundSta->judgepower / sumP * 100, 100.0f);
+            pRoundSta->planPowerRate = std::min(pRoundSta->planpower / sumP * 100, 100.0f);
         }
         else
         {
             pRoundSta->realPowerRate = 0.0f;
-            pRoundSta->planPowerRate = 0.0f;
         }
 
         // printRoundStaJson(pRoundSta);
     }
     roundStaTbl.UnlockTable();
+}
+
+/**
+ * @brief 计算装置信息
+ *
+ */
+void DZJZ_CalcTool::calcDevice()
+{
+    deviceTbl.LockTableStruct();
+    int nCnt = deviceTbl.GetRecordCount();
+    for (int i = 0; i < nCnt; i++)
+    {
+        TDZJZ_DEVICE *pDevice = (TDZJZ_DEVICE *)deviceTbl.GetRecordAddr(i);
+        if (!pDevice)
+            continue;
+
+        RoundItemVec &roundItemVec = deviceItemMap[pDevice->id];
+
+        bool alarm = false;
+        int sfRet = NOT_CHECKED; // 假设状态开始时是正常的
+        int sfReason = UNKOWN_RASON;
+        bool sgRet = false;
+
+        for (const auto roundItem : roundItemVec)
+        {
+            // 如果有一个项告警就告警
+            if (roundItem->devalarm)
+            {
+                alarm = true;
+            }
+
+            // 应投未投
+            if (roundItem->strapjudge == ACT_EXIT)
+            {
+                sfRet = NOT_SUBMITTED;
+            }
+            // 应退未退
+            else if (roundItem->strapjudge == EXIT_ACT)
+            {
+                sfRet = NOT_RETURNED;
+            }
+            else if (isStrapNormal(roundItem->strapjudge))
+            {
+                sfRet = CONSISTENT;
+            }
+
+            if (roundItem->valuejudge)
+            {
+                sgRet = true;
+            }
+
+            if (alarm && sfRet != NOT_CHECKED && sgRet)
+            {
+                break;
+            }
+        }
+
+        pDevice->alarm = alarm;
+        pDevice->sfRet = sfRet;
+        pDevice->sfReason = UNKOWN_RASON;
+        pDevice->diRet = NOT_CHECKED;
+        pDevice->diReason = UNKOWN_RASON;
+        pDevice->sgRet = sgRet;
+        pDevice->sgReason = UNKOWN_RASON;
+    }
 }
 
 /**
@@ -356,8 +412,8 @@ void DZJZ_CalcTool::calcArea()
         if (!ISZERO(pArea->requirePower))
         // if (!ISZERO(pArea->requirePower) && pArea->id == ALL_AREA_ID)
         {
-            pArea->realCompRate = std::min(static_cast<float>(pArea->judgepower / pArea->requirePower * 100), 100.0f);
-            pArea->planCompRate = std::min(static_cast<float>(pArea->planpower / pArea->requirePower * 100), 100.0f);
+            pArea->realCompRate = std::min(pArea->judgepower / pArea->requirePower * 100, 100.0f);
+            pArea->planCompRate = std::min(pArea->planpower / pArea->requirePower * 100, 100.0f);
         }
         else
         {
@@ -369,8 +425,8 @@ void DZJZ_CalcTool::calcArea()
         if (!ISZERO(sumP))
         // if (!ISZERO(sumP) && pArea->id == ALL_AREA_ID)
         {
-            pArea->realPowerRate = std::min(static_cast<float>(pArea->judgepower / sumP * 100), 100.0f);
-            pArea->planPowerRate = std::min(static_cast<float>(pArea->planpower / sumP * 100), 100.0f);
+            pArea->realPowerRate = std::min(pArea->judgepower / sumP * 100, 100.0f);
+            pArea->planPowerRate = std::min(pArea->planpower / sumP * 100, 100.0f);
         }
         else
         {
@@ -493,6 +549,12 @@ void DZJZ_CalcTool::checkModify()
         roundStaTblTime = tmptime;
         chgflag = 1;
     }
+    deviceTbl.GetStructTime(&tmptime);
+    if (tmptime != deviceTblTime)
+    {
+        deviceTblTime = tmptime;
+        chgflag = 1;
+    }
 
     if (chgflag)
     {
@@ -520,6 +582,7 @@ void DZJZ_CalcTool::init()
     areaItemMap.reserve(areaTbl.GetRecordCount());
     roundTypeItemMap.reserve(roundStaTbl.GetRecordCount());
     roundTypeRoundMap.reserve(roundStaTbl.GetRecordCount());
+    deviceItemMap.reserve(deviceTbl.GetRecordCount());
 
     for (i = 0; i < nRoundItemCount; i++)
     {
@@ -530,6 +593,7 @@ void DZJZ_CalcTool::init()
         areaItemMap[pRoundItem->areaid].push_back(pRoundItem);
         areaItemMap[ALL_AREA_ID].push_back(pRoundItem);
         roundTypeItemMap[pRoundItem->roundtype].push_back(pRoundItem);
+        deviceItemMap[pRoundItem->deviceid].push_back(pRoundItem);
     }
 
     int nRoundCount = roundTbl.GetRecordCount();
@@ -542,6 +606,7 @@ void DZJZ_CalcTool::init()
     pAllArea = (TDZJZ_AREA *)areaTbl.SearchRcdAddrByKey((void *)&ALL_AREA_ID);
 
     dzjzk = GetProgramRunPara("dzjzk", 1.0f);
+    dzjzMaxP = GetProgramRunPara("dzjzmax", 0.0f);
 }
 
 // 获取有功总加
@@ -570,31 +635,70 @@ void DZJZ_CalcTool::judgeRequire(TDZJZ_ROUND *pRound)
     get_intertime(&now);
     int seconds = now - pRound->lastAlarm;
 
-    const bool bAlarm = pRound->judgepower < pRound->requirePower;
-
-    if (pRound->judgeRequire != bAlarm)
+    float loadControl;
+    // 如果有配置计划最大负荷
+    if (!ISZERO(dzjzMaxP))
     {
-        pRound->judgeRequire = bAlarm;
+        // 计算负荷控制率 = （实际投运切荷量/总负荷）/(计划切荷量/计划负荷最大值）
+        loadControl = (pRound->judgepower / sumP) / (pRound->requirePower / dzjzMaxP) * 100;
+    }
+    else
+    {
+        loadControl = (pRound->judgepower / pRound->requirePower) * 100;
+    }
+
+    int nVal;
+    if (loadControl >= 100 && loadControl <= 105)
+    {
+        nVal = 0; // 正常
+    }
+    else if (loadControl < 100)
+    {
+        nVal = 1; // 不足
+    }
+    else if (loadControl > 105)
+    {
+        nVal = 2; // 过切
+    }
+
+    if (pRound->judgeRequire != nVal)
+    {
+        pRound->judgeRequire = nVal;
         pRound->lastAlarm = now;
         RdbBackupTable(MyUserName, MyPassWord, DZJZ_ROUND_TBLNAME);
-        if (bAlarm)
+
+        if (nVal == 0)
         {
-            DFLOG_INFO("round %d 低周减载容量不足告警 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
+            DFLOG_INFO("round %d 正常 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
+            dzjzEnt.make_capacity_event(pRound, 0);
+        }
+        else if (nVal == 1)
+        {
+            DFLOG_INFO("round %d 不足 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
             dzjzEnt.make_capacity_event(pRound, 1);
         }
         else
         {
-            DFLOG_INFO("round %d 低周减载容量不足告警恢复 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
-            dzjzEnt.make_capacity_event(pRound, 0);
+            DFLOG_INFO("round %d 过切 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
+            dzjzEnt.make_capacity_event(pRound, 1);
         }
     }
     else
     {
-        if (seconds >= ALARM_OVER_TIME && bAlarm)
+        if (seconds >= ALARM_OVER_TIME && (nVal == 1 || nVal == 2))
         {
             pRound->lastAlarm = now;
             dzjzEnt.make_capacity_event(pRound, 1);
-            DFLOG_INFO("round %d 低周减载容量不足告警 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
+            if (nVal == 1)
+            {
+                DFLOG_INFO("round %d 不足 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
+                dzjzEnt.make_capacity_event(pRound, 1);
+            }
+            else
+            {
+                DFLOG_INFO("round %d 过切 投运切荷量[%f] 应切荷量[%f]", pRound->id, pRound->judgepower, pRound->requirePower);
+                dzjzEnt.make_capacity_event(pRound, 1);
+            }
         }
     }
 }

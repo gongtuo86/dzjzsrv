@@ -1,18 +1,18 @@
-#include "dzjzrounditem.h"
-
 #include <sstream>
 
 #include "cmdefs.h"
 #include "dflogger.h"
 #include "dzjzevent.h"
 #include "rdbscd.h"
+#include "dzjzsrv.h"
+#include "dzjzrounditem.h"
 
-int DZJZ_RoundItem::opentblf = 0;                                         // 实时库表打开标志
-RdbTable DZJZ_RoundItem::rounditemTbl;                                    // 轮次项表
-RdbTable DZJZ_RoundItem::dzjzcdzTbl;                                      // 定值信息表
-std::unordered_map<std::string, T_DZJZ_DZ *> DZJZ_RoundItem::m_dzjzDZMap; // 定值信息map
-int DZJZ_RoundItem::roundItemTblTime = 0;                                 // 轮次项表加载时间
-int DZJZ_RoundItem::dzjzcdzTblTime = 0;                                   // 定值信息表加载时间
+int DZJZ_RoundItem::opentblf = 0;                                        // 实时库表打开标志
+RdbTable DZJZ_RoundItem::rounditemTbl;                                   // 轮次项表
+RdbTable DZJZ_RoundItem::dzjzcdzTbl;                                     // 定值信息表
+std::unordered_map<std::string, TDZJZ_DZ *> DZJZ_RoundItem::m_dzjzDZMap; // 定值信息map
+int DZJZ_RoundItem::roundItemTblTime = 0;                                // 轮次项表加载时间
+int DZJZ_RoundItem::dzjzcdzTblTime = 0;                                  // 定值信息表加载时间
 
 extern DZJZ_Event dzjzEnt;
 
@@ -88,7 +88,7 @@ void DZJZ_RoundItem::init()
     int nCount = dzjzcdzTbl.GetRecordCount();
     for (i = 0; i < nCount; i++)
     {
-        T_DZJZ_DZ *pBuf = (T_DZJZ_DZ *)dzjzcdzTbl.GetRecordAddr(i);
+        TDZJZ_DZ *pBuf = (TDZJZ_DZ *)dzjzcdzTbl.GetRecordAddr(i);
         if (pBuf == nullptr)
             continue;
         std::string key = std::to_string(pBuf->rtuno) + ":" +
@@ -418,7 +418,7 @@ void DZJZ_RoundItem::setStrapJudge(TDZJZ_ROUNDITEM *pItem)
     }
     else
     {
-        if (seconds >= ALARM_OVER_TIME && (strapJudge == 1 || strapJudge == 2))
+        if (seconds >= ALARM_OVER_TIME && (strapJudge == ACT_EXIT || strapJudge == EXIT_ACT))
         {
             pItem->lastAalarm = now;
             dzjzEnt.make_judgefunc_event(pItem);
@@ -524,16 +524,6 @@ void DZJZ_RoundItem::alarmJudge(TDZJZ_ROUNDITEM *pItem)
     }
 
     return;
-}
-
-bool DZJZ_RoundItem::isStrapNormal(int strapJudge)
-{
-    if (strapJudge == 0 || strapJudge == 3)
-        return true;
-    else
-        return false;
-
-    return false;
 }
 
 /**

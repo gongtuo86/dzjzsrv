@@ -43,7 +43,7 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
 
     m_tsList = getTSList();
     m_tsIdNameMap = getTSNameMap(m_tsList);
-    //m_tsJson = getTSJson(m_tsList);
+    // m_tsJson = getTSJson(m_tsList);
 
     reloadFixValue();
 }
@@ -58,7 +58,7 @@ QVector<AreaVo> DBManager::getAreaVoList()
 
 QVector<RoundDto> DBManager::getRoundList()
 {
-    QString query = QString::fromLocal8Bit("select 编号,名称,所属地区,功能类型,轮类型,频率或电压整定值,动作延时整定值,下发应切荷量 from xopensdb.dbo.低周减载轮次参数表");
+    QString query = QString::fromLocal8Bit("select 编号,名称,所属地区,功能类型,轮类型,频率或电压整定值,动作延时整定值,下发应切荷量,计划切荷比例 from xopensdb.dbo.低周减载轮次参数表");
     return getList<RoundDto>(query);
 }
 
@@ -491,7 +491,7 @@ dfJson::Value DBManager::getTMJson(const QVector<TMDto> &list)
         station["name"] = it.value().first().staName;  // 变电站名称
         station["type"] = "substation";                // 变电站类型
 
-        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+        dfJson::Value children(dfJson::arrayValue); // 创建一个空的Json数组
 
         // 开关
         for (const auto &tm : it.value())
@@ -626,7 +626,7 @@ dfJson::Value DBManager::getRtuJson(const QVector<RtuDto> &rtus)
         station["name"] = it.value().first().staName;  // 变电站名称
         station["type"] = "substation";                // 变电站类型
 
-        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+        dfJson::Value children(dfJson::arrayValue); // 创建一个空的Json数组
 
         // 线路
         for (const auto &rtu : it.value())
@@ -710,7 +710,7 @@ dfJson::Value DBManager::getBreakerJson(const QVector<BreakDto> &breakers)
         station["name"] = it.value().first().staName;  // 变电站名称
         station["type"] = "substation";                // 变电站类型
 
-        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+        dfJson::Value children(dfJson::arrayValue); // 创建一个空的Json数组
 
         // 开关
         for (const auto &breaker : it.value())
@@ -753,7 +753,7 @@ dfJson::Value DBManager::getDeviceJson(const QVector<DeviceDto> &devices)
         station["name"] = m_staIdNameMap[it.value().first().staId].toLocal8Bit().data(); // 变电站名称
         station["type"] = "substation";                                                  // 变电站类型
 
-        dfJson::Value children(dfJson::arrayValue);                                      // 创建一个空的Json数组
+        dfJson::Value children(dfJson::arrayValue); // 创建一个空的Json数组
 
         // 线路
         for (const auto &device : it.value())
@@ -797,7 +797,7 @@ dfJson::Value DBManager::getLineJson(const QVector<LineDto> &lines)
         station["name"] = it.value().first().staName;  // 变电站名称
         station["type"] = "substation";                // 变电站类型
 
-        dfJson::Value children(dfJson::arrayValue);    // 创建一个空的Json数组
+        dfJson::Value children(dfJson::arrayValue); // 创建一个空的Json数组
 
         // 线路
         for (const auto &line : it.value())
@@ -871,7 +871,7 @@ dfJson::Value DBManager::getRoundItemJson()
         area["name"] = m_subAreaIdNameMap[it.key()].toLocal8Bit().data(); // 区域名称
         area["type"] = "area";                                            // 区域类型
 
-        dfJson::Value children(dfJson::arrayValue);                       // 创建一个空的Json数组
+        dfJson::Value children(dfJson::arrayValue); // 创建一个空的Json数组
 
         for (const auto &item : it.value())
         {

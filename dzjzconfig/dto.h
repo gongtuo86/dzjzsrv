@@ -24,14 +24,15 @@ public:
 class RoundDto
 {
 public:
-    int id;             // 代码
-    char name[256];     // 名称
-    int areaId;         // 区域id
-    quint8 funcType;    // 功能类型 --低频 -低压
-    int roundType;      // 轮次类型 --第几轮
-    float fixValue;     // 定值
-    float timeValue;    // 延时
-    float requirePower; // 应切荷量
+    int id;                 // 代码
+    char name[256];         // 名称
+    int areaId;             // 区域id
+    quint8 funcType;        // 功能类型 --低频 -低压
+    int roundType;          // 轮次类型 --第几轮
+    float fixValue;         // 定值
+    float timeValue;        // 延时
+    float requirePower;     // 应切荷量
+    float requirePowerRate; // 应切荷比例
 };
 
 class DMDto

@@ -205,14 +205,14 @@ void DZJZ_Inspect::init()
 /**
  * @brief 根据轮类型获取基础类型
  *
- * @param roundType 1--基础轮 2--附加轮 3--特殊论
- * @return int
+ * @param roundType
+ * @return int  1--基础轮 2--特殊轮 3--附加轮
  */
 int DZJZ_Inspect::getRoundBaseType(int roundType)
 {
-    if (roundType >= 1 && roundType <= 5)
+    if (roundType >= 1 && roundType <= 6)
         return 1;
-    else if (roundType == 6)
+    else if (roundType >= 7 && roundType <= 8)
         return 2;
     else
         return 3;
@@ -284,9 +284,9 @@ int DZJZ_Inspect::doInspect(const char *subStation, int areaId, int roundBaseTyp
         inspectItemHistory.id = taskHistory.id;
         // 巡视轮次项
         inspectRoundItem(item, &inspectItemHistory);
-        if (item->strapjudge == 1)
+        if (item->strapjudge == ACT_EXIT)
             taskHistory.uninvestNum++;
-        else if (item->strapjudge == 2)
+        else if (item->strapjudge == EXIT_ACT)
             taskHistory.unbackupNum++;
 
         if (item->devalarm == 1)
@@ -295,7 +295,7 @@ int DZJZ_Inspect::doInspect(const char *subStation, int areaId, int roundBaseTyp
         if (item->valuejudge == 1)
             taskHistory.valueJudgeNum++;
 
-        DFLOG_INFO("[DZJZ_Inspect] 手动巡检 轮次项:%d 应投未投:%d 应退未退:%d 装置告警:%d 定值不同:%d", item->id, item->strapjudge == 1, item->strapjudge == 2, item->devalarm, item->valuejudge);
+        DFLOG_INFO("[DZJZ_Inspect] 手动巡检 轮次项:%d 应投未投:%d 应退未退:%d 装置告警:%d 定值不同:%d", item->id, item->strapjudge == ACT_EXIT, item->strapjudge == EXIT_ACT, item->devalarm, item->valuejudge);
 
         inspectItemHistoryVec.push_back(inspectItemHistory);
 
@@ -309,8 +309,8 @@ int DZJZ_Inspect::doInspect(const char *subStation, int areaId, int roundBaseTyp
         jItem["planFixValue"] = getFixedValue(item->planvalue, item->plantime, item->functype);
         jItem["realStrap"] = item->strapreal;
         jItem["planStrap"] = item->strapplan;
-        jItem["uninvest"] = (item->strapjudge == 1);
-        jItem["unbackup"] = (item->strapjudge == 2);
+        jItem["uninvest"] = (item->strapjudge == ACT_EXIT);
+        jItem["unbackup"] = (item->strapjudge == EXIT_ACT);
         jItem["judgeValue"] = item->valuejudge;
         jItem["devAlarm"] = item->devalarm;
         jItem["funcJudge"] = item->funcjudge;
@@ -378,9 +378,9 @@ int DZJZ_Inspect::doInspect(T_PERIOD_INSPECT_TASK *pTask, intertime now)
         inspectItemHistory.id = taskHistory.id;
         // 巡视轮次项
         inspectRoundItem(item, &inspectItemHistory);
-        if (item->strapjudge == 1)
+        if (item->strapjudge == ACT_EXIT)
             taskHistory.uninvestNum++;
-        else if (item->strapjudge == 2)
+        else if (item->strapjudge == EXIT_ACT)
             taskHistory.unbackupNum++;
 
         if (item->devalarm == 1)
@@ -389,7 +389,7 @@ int DZJZ_Inspect::doInspect(T_PERIOD_INSPECT_TASK *pTask, intertime now)
         if (item->valuejudge == 1)
             taskHistory.valueJudgeNum++;
 
-        DFLOG_INFO("[DZJZ_Inspect] 巡检任务:%d 轮次项:%d 应投未投:%d 应退未退:%d 装置告警:%d 定值不同:%d", pTask->id, item->id, item->strapjudge == 1, item->strapjudge == 2, item->devalarm, item->valuejudge);
+        DFLOG_INFO("[DZJZ_Inspect] 巡检任务:%d 轮次项:%d 应投未投:%d 应退未退:%d 装置告警:%d 定值不同:%d", pTask->id, item->id, item->strapjudge == ACT_EXIT, item->strapjudge == EXIT_ACT, item->devalarm, item->valuejudge);
 
         inspectItemHistoryVec.push_back(inspectItemHistory);
     }

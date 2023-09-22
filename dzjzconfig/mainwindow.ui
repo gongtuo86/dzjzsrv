@@ -49,6 +49,11 @@
         <string>周期巡视</string>
        </property>
       </item>
+      <item>
+       <property name="text">
+        <string>文件导入</string>
+       </property>
+      </item>
      </widget>
     </item>
     <item row="0" column="1">
@@ -66,7 +71,7 @@
        <number>0</number>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="pageArea">
        <layout class="QGridLayout" name="gridLayout">
@@ -371,6 +376,40 @@
         </item>
         <item row="1" column="0">
          <widget class="QTableView" name="m_taskTableView"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="pageFile">
+       <layout class="QGridLayout" name="gridLayout_8">
+        <item row="0" column="0" colspan="3">
+         <widget class="QTableView" name="m_tableViewFileRound"/>
+        </item>
+        <item row="1" column="0">
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>1352</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="1">
+         <widget class="QPushButton" name="m_pushButtonRoundSelect">
+          <property name="text">
+           <string>选择文件</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QPushButton" name="m_pushButtonRoundImport">
+          <property name="text">
+           <string>导入</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

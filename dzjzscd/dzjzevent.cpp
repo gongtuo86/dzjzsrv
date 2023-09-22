@@ -219,11 +219,11 @@ int DZJZ_Event::make_action_event(SYS_CLOCK &evtclock, int deviceID, const std::
 
         if (act)
         {
-            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载动作：装置[%s] 轮次[%s] 负荷[%s] 信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
+            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载动作：装置[%s] 轮次[%s] 线路[%s] 信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
         }
         else
         {
-            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载复归：装置[%s] 轮次[%s] 负荷[%s] 信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
+            std::snprintf(tmpevent.sysevent.char_info, sizeof(tmpevent.sysevent.char_info), "低周减载复归：装置[%s] 轮次[%s] 线路[%s] 信号[%s]", deviceName.c_str(), item.roundname, item.feedername, getActionName(item.actionid).c_str());
         }
 
         DFLOG_INFO("%s", tmpevent.sysevent.char_info);

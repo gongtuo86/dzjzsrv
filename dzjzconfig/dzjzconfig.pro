@@ -8,7 +8,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += debug warn_off thread
+CONFIG += debug warn_off thread console
 
 TARGET = dzjzconfig
 TEMPLATE = app
@@ -28,9 +28,11 @@ RCC_DIR = $$(RUNHOME)/tmp/dzjzsrv/dzjzconfig/rcc
 INCLUDEPATH +=  \
                 $(RUNHOME_INC)/include \
                 $(RUNHOME_INC)/smmi/component/dfjson/include \
-                $(RUNHOME_INC)/dzjzsrv/dzjzprot
+                $(RUNHOME_INC)/dzjzsrv/dzjzprot \
+                $(RUNHOME_INC)/smmi/tools/alarmapplogin4/alarmapplogin \
+                $(RUNHOME_INC)/include/mmi/interface
 
-LIBS += -L$(RUNHOME)/bin -L$(RUNHOME)/lib -lexdb -ldfnet -ldorbase -ldflogger -ldfjson -ldzjzprot
+LIBS += -L$(RUNHOME)/bin -L$(RUNHOME)/lib -lexdb -ldfnet -ldorbase -ldflogger -ldfjson -ldzjzprot -lalarmapplogin4
 
 
 HEADERS  += mainwindow.h \
@@ -41,7 +43,9 @@ HEADERS  += mainwindow.h \
             dbmanager.h \
             jsontreedialog.h \
             dzjzconfigutil.h \
-    callRunnable.h
+            callRunnable.h \
+            dzjzfileparser.h
+
       
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -49,7 +53,8 @@ SOURCES += main.cpp\
         commonformdialog.cpp \
         dbmanager.cpp \
         jsontreedialog.cpp \
-    callRunnable.cpp
+        callRunnable.cpp \
+        dzjzfileparser.cpp
 
 FORMS    += mainwindow.ui \
             jsontreedialog.ui

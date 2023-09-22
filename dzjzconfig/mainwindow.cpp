@@ -6,6 +6,7 @@
 #include <QProgressDialog>
 #include <QThreadPool>
 #include <QTimer>
+#include <QFileDialog>
 
 #include "commonformdialog.h"
 #include "dbmanager.h"
@@ -18,10 +19,79 @@
 #include "jsontreedialog.h"
 #include "fixvaluesrv.h"
 #include "callRunnable.h"
+#include "rightmanage4.h"
+#include "userRightDefine.h"
+#include "dzjzfileparser.h"
+
+static char *arrUfBaseFreq[] = {
+    "uf_base1_freq",
+    "uf_base2_freq",
+    "uf_base3_freq",
+    "uf_base4_freq",
+    "uf_base5_freq",
+    "uf_base6_freq",
+    "uf_spec1_freq",
+    "uf_spec2_freq"};
+
+static char *arrUfBaseTime[] = {
+    "uf_base1_time",
+    "uf_base2_time",
+    "uf_base3_time",
+    "uf_base4_time",
+    "uf_base5_time",
+    "uf_base6_time",
+    "uf_spec1_time",
+    "uf_spec2_time"};
+
+static char *arrUfBaseRequire[] = {
+    "uf_base1_require",
+    "uf_base2_require",
+    "uf_base3_require",
+    "uf_base4_require",
+    "uf_base5_require",
+    "uf_base6_require",
+    "uf_spec1_require",
+    "uf_spec2_require"};
+
+static char *arrUfBaseRequireRate[] = {
+    "uf_base1_require_rate",
+    "uf_base2_require_rate",
+    "uf_base3_require_rate",
+    "uf_base4_require_rate",
+    "uf_base5_require_rate",
+    "uf_base6_require_rate",
+    "uf_spec1_require_rate",
+    "uf_spec2_require_rate"};
+
+static char *arrUVBaseVolt[] = {
+    "uv_base1_volt",
+    "uv_base2_volt",
+    "uv_spec1_volt",
+    "uv_spec2_volt"};
+
+static char *arrUvBaseTime[] = {
+    "uv_base1_time",
+    "uv_base2_time",
+    "uv_spec1_time",
+    "uv_spec2_time"};
+
+static char *arrUvBaseRequire[] = {
+    "uv_base1_require",
+    "uv_base2_require",
+    "uv_spec1_require",
+    "uv_spec2_require"};
+
+static char *arrUvBaseRequireRate[] = {
+    "uv_base1_require_rate",
+    "uv_base2_require_rate",
+    "uv_spec1_require_rate",
+    "uv_spec2_require_rate"};
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
                                           ui(new Ui::MainWindow)
 {
+    m_pRightManage = NULL;
+
     ui->setupUi(this);
 
     this->setWindowTitle(QString::fromLocal8Bit("第三道防线维护工具"));
@@ -36,11 +106,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 
     // 设置左侧列表宽度
     ui->m_listWidget->setIconSize(QSize(32, 32));
-    QIcon icon[4] = {
+    QIcon icon[5] = {
         QIcon(":/qss_icons/light/rc/area.png"),
         QIcon(":/qss_icons/light/rc/device.png"),
         QIcon(":/qss_icons/light/rc/item.png"),
-        QIcon(":/qss_icons/light/rc/task.png")};
+        QIcon(":/qss_icons/light/rc/task.png"),
+        QIcon(":/qss_icons/light/rc/import.png")};
     for (int i = 0; i < ui->m_listWidget->count(); ++i)
     {
         QListWidgetItem *pItem = ui->m_listWidget->item(i);
@@ -69,13 +140,43 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
     ui->m_callPushButton->setIcon(callBtnIcon);
     ui->m_callPushButton->setIconSize(QSize(32, 32));
 
+    QIcon selectFileBtnIcon = QIcon(":/qss_icons/light/rc/selectfile.png");
+    ui->m_pushButtonRoundSelect->setIcon(selectFileBtnIcon);
+    ui->m_pushButtonRoundSelect->setIconSize(QSize(32, 32));
+
+    QIcon importBtnIcon = QIcon(":/qss_icons/light/rc/import.png");
+    ui->m_pushButtonRoundImport->setIcon(importBtnIcon);
+    ui->m_pushButtonRoundImport->setIconSize(QSize(32, 32));
+
     onModuleItemClicked(ui->m_listWidget->item(0));
+
+    this->setEnabled(false);
+
+    QTimer::singleShot(0, this, SLOT(OnLogin()));
 }
 
 MainWindow::~MainWindow()
 {
     closedb();
     delete ui;
+}
+
+void MainWindow::OnLogin()
+{
+    if (m_pRightManage == NULL)
+        m_pRightManage = new RightManage4(this, "dzjzconfig");
+    QStringList strList;
+    strList.append(QString("%1").arg(RIGHT_MODIFY_MAIN_PARA));
+
+    if (m_pRightManage->dispPassWordDialog(&strList, this) == QDialog::Accepted)
+    {
+        this->setEnabled(true);
+    }
+    else
+    {
+        DFLOG_DEBUG("OnLogin exit");
+        QApplication::exit();
+    }
 }
 
 void MainWindow::setupModels()
@@ -86,6 +187,7 @@ void MainWindow::setupModels()
     setupDeviceTable();
     setupDeviceParaTable();
     setupTaskTable();
+    setupRoundFileModel();
 }
 
 void MainWindow::setupAreaTable()
@@ -350,6 +452,10 @@ void MainWindow::onModuleItemClicked(QListWidgetItem *item)
     {
         readTaskTable();
         ui->m_taskTableView->resizeColumnsToContents();
+    }
+    else if (index == 4)
+    {
+        // TODO
     }
 }
 
@@ -2288,4 +2394,174 @@ void MainWindow::updateProgressDialog()
             dialog->setValue(value + 1);
         }
     }
+}
+
+void MainWindow::setupRoundFileModel()
+{
+    // 区域模型
+    m_roundFileModel = new QStandardItemModel(this);
+    m_roundFileModel->setHorizontalHeaderLabels(QStringList() << QString::fromLocal8Bit("编号")
+                                                              << QString::fromLocal8Bit("名称")
+                                                              << QString::fromLocal8Bit("功能类型")
+                                                              << QString::fromLocal8Bit("轮次类型")
+                                                              << QString::fromLocal8Bit("原频率/电压整定值")
+                                                              << QString::fromLocal8Bit("现频率/电压整定值")
+                                                              << QString::fromLocal8Bit("原动作延时整定值")
+                                                              << QString::fromLocal8Bit("现动作延时整定值")
+                                                              << QString::fromLocal8Bit("原应切荷量")
+                                                              << QString::fromLocal8Bit("现应切荷量")
+                                                              << QString::fromLocal8Bit("原应切荷比例")
+                                                              << QString::fromLocal8Bit("现应切荷比例"));
+
+    ui->m_tableViewFileRound->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->m_tableViewFileRound->setModel(m_roundFileModel);
+    ui->m_tableViewFileRound->resizeColumnsToContents();
+
+    connect(ui->m_pushButtonRoundSelect, SIGNAL(clicked()), this, SLOT(onSelectRoundFile()));
+    connect(ui->m_pushButtonRoundImport, SIGNAL(clicked()), this, SLOT(onImportRoundFileToDB()));
+}
+
+void MainWindow::onSelectRoundFile()
+{
+    BaseFileConfig ufConfig = {
+        arrUfBaseFreq, arrUfBaseTime, arrUfBaseRequire, arrUfBaseRequireRate, 8};
+
+    BaseFileConfig uvConfig = {
+        arrUVBaseVolt, arrUvBaseTime, arrUvBaseRequire, arrUvBaseRequireRate, 4};
+
+    m_pDbManager->reloadRound();
+
+    QString filePath = QFileDialog::getOpenFileName(this,
+                                                    QString::fromLocal8Bit("请选择文件..."),
+                                                    QString("%1/%2").arg(qgetenv("RUNHOME_INC").data()).arg("dzjzsrv/docs"),
+                                                    "CIME Files (*.CIME);;All Files (*)");
+
+    if (!filePath.isEmpty())
+    {
+        DZJZ_FileParser parser(filePath);
+        const dfJson::Value &jFile = parser.parse();
+        dfJson::Value jFreqRow = getJsonConfig(jFile, "低频配置方案");
+        dfJson::Value jVoltRow = getJsonConfig(jFile, "低压配置方案");
+
+        m_roundFileModel->removeRows(0, m_roundFileModel->rowCount());
+
+        for (int i = 0; i < m_pDbManager->m_roundList.count(); ++i)
+        {
+            const RoundDto &roundDB = m_pDbManager->m_roundList[i];
+            BaseFileConfig *pConfig = nullptr;
+            dfJson::Value *pJRow = nullptr;
+            int pos = 0;
+            if (i < 8)
+            {
+                pConfig = &ufConfig;
+                pJRow = &jFreqRow;
+                pos = i;
+            }
+            else
+            {
+                pConfig = &uvConfig;
+                pJRow = &jVoltRow;
+                pos = i - 8;
+            }
+
+            QList<QStandardItem *> items = generateRowItems(roundDB, *pJRow, *pConfig, pos);
+            m_roundFileModel->appendRow(items);
+        }
+
+        ui->m_tableViewFileRound->resizeColumnsToContents();
+    }
+}
+
+dfJson::Value MainWindow::getJsonConfig(const dfJson::Value &jFile, const char *key)
+{
+    if (jFile.isMember(key))
+    {
+        dfJson::Value config = jFile[key];
+        if (config.size() > 0)
+        {
+            return config[0];
+        }
+    }
+    return dfJson::Value();
+}
+
+QList<QStandardItem *> MainWindow::generateRowItems(const RoundDto &roundDB, const dfJson::Value &jRow, const BaseFileConfig &config, int index)
+{
+    QList<QStandardItem *> items;
+
+    // Add common items
+    items.append(new QStandardItem(QString::number(roundDB.id)));
+    items.append(new QStandardItem(roundDB.name));
+    items.append(new QStandardItem(m_pDbManager->m_roundFuncTypeMap[roundDB.funcType]));
+    items.append(new QStandardItem(m_pDbManager->m_roundTypeMap[roundDB.roundType]));
+
+    generateStandardItem(roundDB.fixValue, jRow[config.value[index]].asCString(), items);
+    generateStandardItem(roundDB.timeValue / 1000, jRow[config.time[index]].asCString(), items);
+    generateStandardItem(roundDB.requirePower, jRow[config.require[index]].asCString(), items);
+    generateStandardItem(roundDB.requirePowerRate, jRow[config.requireRate[index]].asCString(), items);
+
+    return items;
+}
+
+void MainWindow::generateStandardItem(float dbValue, const QString &fileValue, QList<QStandardItem *> &items)
+{
+    QStandardItem *item1 = new QStandardItem(QString::number(dbValue, 'f', 2));
+    QStandardItem *item2 = new QStandardItem(QString::number(fileValue.toFloat(), 'f', 2));
+
+    if (qAbs(dbValue - fileValue.toFloat()) > 1e-6)
+    {
+        QBrush redBrush(Qt::red);
+        item1->setBackground(redBrush);
+        item2->setBackground(redBrush);
+    }
+
+    items.append(item1);
+    items.append(item2);
+}
+
+/**
+ * @brief 导入省调文件到数据库
+ *
+ */
+void MainWindow::onImportRoundFileToDB()
+{
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "导入确认", "您确实要导入数据到数据库吗？",
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+    {
+        return;
+    }
+
+    m_pDbManager->m_roundList;
+
+    for (int row = 0; row < m_roundFileModel->rowCount(); ++row)
+    {
+        m_pDbManager->m_roundList[row].fixValue = m_roundFileModel->data(m_roundFileModel->index(row, 5)).toFloat();
+        m_pDbManager->m_roundList[row].timeValue = m_roundFileModel->data(m_roundFileModel->index(row, 7)).toFloat() * 1000;
+        m_pDbManager->m_roundList[row].requirePower = m_roundFileModel->data(m_roundFileModel->index(row, 9)).toFloat();
+        m_pDbManager->m_roundList[row].requirePowerRate = m_roundFileModel->data(m_roundFileModel->index(row, 11)).toFloat();
+        m_pDbManager->updateRoundTable(m_pDbManager->m_roundList[row]);
+
+        QModelIndex index;
+        index = m_roundFileModel->index(row, 4);
+        m_roundFileModel->setData(index, QString::number(m_pDbManager->m_roundList[row].fixValue, 'f', 2));
+
+        index = m_roundFileModel->index(row, 6);
+        m_roundFileModel->setData(index, QString::number(m_pDbManager->m_roundList[row].timeValue / 1000, 'f', 2));
+
+        index = m_roundFileModel->index(row, 8);
+        m_roundFileModel->setData(index, QString::number(m_pDbManager->m_roundList[row].requirePower, 'f', 2));
+
+        index = m_roundFileModel->index(row, 10);
+        m_roundFileModel->setData(index, QString::number(m_pDbManager->m_roundList[row].requirePowerRate, 'f', 2));
+    }
+
+    m_pDbManager->reloadRound();
+
+    m_pDbManager->loadRdb("低周减载轮次参数表");
+    m_pDbManager->loadRdb("低周减载轮次项视图");
+
+    QMessageBox::information(this, "导入成功", "文件已成功导入到数据库。");
 }

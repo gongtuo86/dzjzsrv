@@ -215,6 +215,8 @@
         <file>rc/edit.png</file>
         <file>rc/task.png</file>
         <file>rc/call.png</file>
+        <file>rc/import.png</file>
+        <file>rc/selectfile.png</file>
     </qresource>
     <qresource prefix="/qdarkstyle/light">
         <file>lightstyle.qss</file>

@@ -153,36 +153,43 @@ public:
             state->future = g_threadPool.enqueue(
                 [id, gb2312Parameter, state]()
                 {
+                    int count = 10;
                     // 在每次循环的开始处检查是否应该停止
                     while (!*state->shouldStop)
                     {
-                        DFLOG_DEBUG("[%s] 集中式装置刷新", id->c_str());
-                        dfJson::Value jMessage = getCentrialDevice(gb2312Parameter);
-
-                        std::string strMessage = jsonToString(jMessage);
-                        performWithPeer(id, [&](std::shared_ptr<WSListener> &peer)
-                                        {
-                                            peer->sendMessage(gb2312ToUtf8(strMessage));
-                                        });
-                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                        if (++count >= 10)
+                        {
+                            dfJson::Value jMessage = getCentrialDevice(gb2312Parameter);
+                            std::string strMessage = jsonToString(jMessage);
+                            performWithPeer(id, [&](std::shared_ptr<WSListener> &peer)
+                                            {
+                                                DFLOG_DEBUG("[%s] %s", id->c_str(), strMessage.c_str());
+                                                peer->sendMessage(gb2312ToUtf8(strMessage));
+                                            });
+                            count = 0;
+                        }
+                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
                     }
                     DFLOG_DEBUG("[%s] 集中式装置刷新停止", id->c_str());
                 });
 
             // 请求后立即返回
             dfJson::Value jResponse = constructJsonResponse(200, "OK");
+            DFLOG_DEBUG("CentrialDevice return OK");
             return createResponse(Status::CODE_200, gb2312ToUtf8(jsonToString(jResponse)));
         }
         catch (const std::runtime_error &e)
         {
+            DFLOG_DEBUG("CentrialDevice return 409 %s", e.what());
             return createResponse(Status::CODE_409, e.what());
         }
     }
-
+#if 0 // 废弃
     ADD_CORS(SubscribeRealEvent, "*", "*", "*", "1728000")
     ENDPOINT("POST", "/api/SubscribeRealEvent", SubscribeRealEvent,
              HEADER(String, id, "socketid"))
     {
+        DFLOG_DEBUG("id=%s SubscribeRealEvent", id->c_str());
         if (!isPeerConnected(id))
         {
             dfJson::Value root = constructJsonResponse(400, "websocket 已断开");
@@ -193,63 +200,68 @@ public:
 
         try
         {
-            std::shared_ptr<TaskState> state = createNewTaskState(id);
-            state->future = g_threadPool.enqueue(
-                [id, state]()
-                {
-                    // 在每次循环的开始处检查是否应该停止
-                    DFLOG_DEBUG("[%s] 告警事项刷新开始", id->c_str());
-                    int count = 0;
-                    while (!*state->shouldStop)
-                    {
-                        dfJson::Value jMessage = getRealEvent();
-                        if (!jMessage.empty())
-                        {
-                            std::string strMessage = jsonToString(jMessage);
-                            performWithPeer(id, [&](std::shared_ptr<WSListener> &peer)
-                                            {
-                                                DFLOG_DEBUG("[告警事项] %s", strMessage.c_str());
-                                                peer->sendMessage(gb2312ToUtf8(strMessage));
-                                            });
-                            count = 0; // 有实际事件，重置计数器
-                        }
-                        else
-                        {
-                            if (++count >= 15) // 无实际事件，且已经等待了3秒
-                            {
-                                dfJson::Value jResponse;
-                                jResponse["optype"] = "getRealEvent";
-                                jResponse["info"] = "低周减载事项测试";
-                                QDateTime dateTime = QDateTime::currentDateTime();
-                                jResponse["time"] = dateTime.toString("yyyy-MM-dd hh:mm:ss.zzz").toAscii().data();
-                                jResponse["substaion"] = "站控系统测试站"; // 厂站
-                                jResponse["state"] = "动作";
+            // std::shared_ptr<TaskState> state = createNewTaskState(id);
+            // state->future = g_threadPool.enqueue(
+            //     [id, state]()
+            //     {
+            //         // 在每次循环的开始处检查是否应该停止
+            //         DFLOG_DEBUG("[%s] 告警事项刷新开始", id->c_str());
+            //         int count = 0;
+            //         while (!*state->shouldStop)
+            //         {
+            //             dfJson::Value jMessage = getRealEvent();
+            //             if (!jMessage.empty())
+            //             {
+            //                 std::string strMessage = jsonToString(jMessage);
+            //                 performWithPeer(id, [&](std::shared_ptr<WSListener> &peer)
+            //                                 {
+            //                                     DFLOG_DEBUG("[告警事项] %s", strMessage.c_str());
+            //                                     peer->sendMessage(gb2312ToUtf8(strMessage));
+            //                                 });
+            //                 count = 0; // 有实际事件，重置计数器
+            //             }
+                        //TODO delete
+                        // else
+                        // {
+                        //     if (++count >= 150) // 无实际事件，且已经等待了30秒
+                        //     {
+                        //         dfJson::Value jResponse;
+                        //         jResponse["optype"] = "getRealEvent";
+                        //         jResponse["info"] = "低周减载事项测试";
+                        //         QDateTime dateTime = QDateTime::currentDateTime();
+                        //         jResponse["time"] = dateTime.toString("yyyy-MM-dd hh:mm:ss.zzz").toAscii().data();
+                        //         jResponse["substation"] = "测试站"; // 厂站
+                        //         jResponse["state"] = "动作";
 
-                                // 发送测试事件
-                                std::string strMessage = jsonToString(jResponse);
-                                performWithPeer(id, [&](std::shared_ptr<WSListener> &peer)
-                                                {
-                                                    peer->sendMessage(gb2312ToUtf8(strMessage));
-                                                    DFLOG_DEBUG("[告警事项] %s", strMessage.c_str());
-                                                });
-                                count = 0; // 发送测试事件后，重置计数器
-                            }
-                        }
+                        //         // 发送测试事件
+                        //         std::string strMessage = jsonToString(jResponse);
+                        //         performWithPeer(id, [&](std::shared_ptr<WSListener> &peer)
+                        //                         {
+                        //                             peer->sendMessage(gb2312ToUtf8(strMessage));
+                        //                             DFLOG_DEBUG("[告警事项] %s", strMessage.c_str());
+                        //                         });
+                        //         count = 0; // 发送测试事件后，重置计数器
+                        //     }
+                        // }
 
-                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                    }
-                    DFLOG_DEBUG("[%s] 告警事项刷新停止", id->c_str());
-                });
+                    //     std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                    // }
+                //     DFLOG_DEBUG("[%s] 告警事项刷新停止", id->c_str());
+                // });
 
             // 请求后立即返回
             dfJson::Value jResponse = constructJsonResponse(200, "OK");
+            DFLOG_DEBUG("SubscribeRealEvent return OK");
             return createResponse(Status::CODE_200, gb2312ToUtf8(jsonToString(jResponse)));
         }
         catch (const std::runtime_error &e)
         {
+            DFLOG_DEBUG("SubscribeRealEvent return 409 %s", e.what());
             return createResponse(Status::CODE_409, e.what());
         }
     }
+
+#endif
 };
 
 #include OATPP_CODEGEN_END(ApiController) //<-- codegen end

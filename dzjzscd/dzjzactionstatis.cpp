@@ -65,6 +65,11 @@ void DZJZ_ActionStatis::saveActionRoundItemVec(int id, int time, const std::vect
         strcpy(item.roundTypeName, getRoundTypeName(item.roundType).c_str());
         strcpy(item.actionID, pRoundItem.actionid);
         strcpy(item.actionName, getActionName(item.actionID).c_str());
+        item.deviceID = pRoundItem.deviceid;
+        strcpy(item.deviceName, pRoundItem.devicename);
+        item.deviceType = pRoundItem.devtype;
+        item.roundFuncType = pRoundItem.functype;
+        strcpy(item.ofSta, pRoundItem.staid);     
         actRoundItemVec.push_back(item);
     }
 
