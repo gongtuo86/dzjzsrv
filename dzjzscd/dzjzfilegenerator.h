@@ -35,109 +35,36 @@ class DZJZ_FileGenerator
 {
 private:
     QString m_fileName;
-    QString m_system = QString::fromLocal8Bit("地区电网");
+    QString m_system = QString::fromLocal8Bit("????");
     QString m_version = QString::fromLocal8Bit("1.0");
     QString m_type;
     QString m_code = QString::fromLocal8Bit("UTF-8");
     QString m_data = QString::fromLocal8Bit("1.0");
     QString m_datetime;
 
-    static const QMap<int, QString> m_funcTypeMap;
-    static const QMap<QString, QString> m_subMap;
-    static const QMap<int, QString> m_loadTypeMap;
-    static const QMap<int, QString> m_strapTypeMap;
-    static const QMap<int, QString> m_deviceTypeMap;
+    QMap<int, QString> m_funcTypeMap;
+    QMap<QString, QString> m_subMap;
+    QMap<int, QString> m_loadTypeMap;
+    QMap<int, QString> m_strapTypeMap;
+    QMap<int, QString> m_deviceTypeMap;
+
+    DZJZ_FileGenerator();
+    DZJZ_FileGenerator(const DZJZ_FileGenerator &) = delete;
+    void operator=(const DZJZ_FileGenerator &) = delete;
 
 public:
-    DZJZ_FileGenerator(const QString &fileName,
-                       const QString &type,
-                       const QString &datetime);
-
+    static DZJZ_FileGenerator &gentInstance();
+    void SetPara(const QString &fileName, const QString &type, const QString &datetime);
     bool Generate(const QList<DZJZ_Section> &sections);
+    QString getRoundBaseType(int roundType);
+    int getRoundBaseTypeNum(int roundType);
+    QMap<int, QString> getDMConfig(const QString &strType);
+    QMap<QString, QString> getSubMap();
 
-    /**
-     * @brief Get the Round Base Type object
-     *
-     * @param roundType
-     * @return QString
-     */
-    static QString getRoundBaseType(int roundType);
-
-    static int getRoundBaseTypeNum(int roundType);
-
-    static bool DZJZ_GenRoundsFile(const QDateTime &qDateTime);
-
-    static bool DZJZ_GenDevicesFile(const QDateTime &qDateTime);
-
-    static bool DZJZ_GenLineFile(const QDateTime &qDateTime);
-
-    static bool DZJZ_GenActFile(const QDateTime &qDateTime, int nCycle);
+    bool DZJZ_GenRoundsFile(const QDateTime &qDateTime);
+    bool DZJZ_GenDevicesFile(const QDateTime &qDateTime);
+    bool DZJZ_GenLineFile(const QDateTime &qDateTime);
+    bool DZJZ_GenActFile(const QDateTime &qDateTime, int nCycle);
 };
-
-QMap<int, QString> getDMConfig(const QString &strType)
-{
-    typedef struct
-    {
-        int id;
-        char name[40];
-    } DMDto;
-
-    QString query = QString::fromLocal8Bit("select 数值,项目 from xopensdb.dbo.DM配置表 where 配置类型='%1'")
-                        .arg(strType);
-
-    QMap<int, QString> map;
-    FUNC_STR func;
-    DMDto *pBuf = nullptr;
-    memset(&func, 0, sizeof(FUNC_STR));
-    func.func = SELECT_ISQL_RESULTS;
-    func.serverno = SERVER_DEFAULT;
-    snprintf(func.isql, sizeof(func.isql) - 1, "%s", query.toLocal8Bit().data());
-    dbfselectisqlresults(&func, nullptr, (void **)&pBuf);
-    for (int i = 0; i < func.ret_roxnum; i++)
-    {
-        map[pBuf[i].id] = QString::fromLocal8Bit(pBuf[i].name);
-    }
-
-    if (pBuf != nullptr)
-    {
-        free(pBuf);
-        pBuf = nullptr;
-    }
-
-    return map;
-}
-
-QMap<QString, QString> getSubMap()
-{
-    typedef struct
-    {
-        char name[SUBSTATION_LEN];
-        char desc[DESCRIBE_LEN];
-    } SubDto;
-
-    QString query = QString::fromLocal8Bit("select 编号,名称 from xopensdb.dbo.厂站参数表");
-
-    QMap<QString, QString> map;
-    FUNC_STR func;
-    SubDto *pBuf = nullptr;
-    memset(&func, 0, sizeof(FUNC_STR));
-    func.func = SELECT_ISQL_RESULTS;
-    func.serverno = SERVER_DEFAULT;
-    snprintf(func.isql, sizeof(func.isql) - 1, "%s", query.toLocal8Bit().data());
-    dbfselectisqlresults(&func, nullptr, (void **)&pBuf);
-    for (int i = 0; i < func.ret_roxnum; i++)
-    {
-        map[pBuf[i].name] = QString::fromLocal8Bit(pBuf[i].desc);
-    }
-
-    if (pBuf != nullptr)
-    {
-        free(pBuf);
-        pBuf = nullptr;
-    }
-
-    return map;
-}
-
 
 #endif

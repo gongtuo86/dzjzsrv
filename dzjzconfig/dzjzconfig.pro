@@ -8,7 +8,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += debug warn_off thread console
+CONFIG += debug warn_off thread
 
 TARGET = dzjzconfig
 TEMPLATE = app

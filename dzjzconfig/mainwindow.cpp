@@ -2485,6 +2485,24 @@ dfJson::Value MainWindow::getJsonConfig(const dfJson::Value &jFile, const char *
     return dfJson::Value();
 }
 
+// QList<QStandardItem *> MainWindow::generateRowItems(const RoundDto &roundDB, const dfJson::Value &jRow, const BaseFileConfig &config, int index)
+// {
+//     QList<QStandardItem *> items;
+
+//     // Add common items
+//     items.append(new QStandardItem(QString::number(roundDB.id)));
+//     items.append(new QStandardItem(roundDB.name));
+//     items.append(new QStandardItem(m_pDbManager->m_roundFuncTypeMap[roundDB.funcType]));
+//     items.append(new QStandardItem(m_pDbManager->m_roundTypeMap[roundDB.roundType]));
+
+//     generateStandardItem(roundDB.fixValue, jRow[config.value[index]].asCString(), items);
+//     generateStandardItem(roundDB.timeValue / 1000, jRow[config.time[index]].asCString(), items);
+//     generateStandardItem(roundDB.requirePower, jRow[config.require[index]].asCString(), items);
+//     generateStandardItem(roundDB.requirePowerRate, jRow[config.requireRate[index]].asCString(), items);
+
+//     return items;
+// }
+
 QList<QStandardItem *> MainWindow::generateRowItems(const RoundDto &roundDB, const dfJson::Value &jRow, const BaseFileConfig &config, int index)
 {
     QList<QStandardItem *> items;
@@ -2495,10 +2513,44 @@ QList<QStandardItem *> MainWindow::generateRowItems(const RoundDto &roundDB, con
     items.append(new QStandardItem(m_pDbManager->m_roundFuncTypeMap[roundDB.funcType]));
     items.append(new QStandardItem(m_pDbManager->m_roundTypeMap[roundDB.roundType]));
 
-    generateStandardItem(roundDB.fixValue, jRow[config.value[index]].asCString(), items);
-    generateStandardItem(roundDB.timeValue / 1000, jRow[config.time[index]].asCString(), items);
-    generateStandardItem(roundDB.requirePower, jRow[config.require[index]].asCString(), items);
-    generateStandardItem(roundDB.requirePowerRate, jRow[config.requireRate[index]].asCString(), items);
+    if (jRow.isMember(config.value[index]) && jRow[config.value[index]].isString())
+    {
+        generateStandardItem(roundDB.fixValue, jRow[config.value[index]].asCString(), items);
+    }
+    else
+    {
+        items.append(new QStandardItem("0"));
+        items.append(new QStandardItem("0"));
+    }
+    if (jRow.isMember(config.time[index]) && jRow[config.time[index]].isString())
+    {
+        generateStandardItem(roundDB.timeValue / 1000, jRow[config.time[index]].asCString(), items);
+    }
+    else
+    {
+        items.append(new QStandardItem("0"));
+        items.append(new QStandardItem("0"));
+    }
+
+    if (jRow.isMember(config.require[index]) && jRow[config.require[index]].isString())
+    {
+        generateStandardItem(roundDB.requirePower, jRow[config.require[index]].asCString(), items);
+    }
+    else
+    {
+        items.append(new QStandardItem("0"));
+        items.append(new QStandardItem("0"));
+    }
+
+    if (jRow.isMember(config.requireRate[index]) && jRow[config.requireRate[index]].isString())
+    {
+        generateStandardItem(roundDB.requirePowerRate, jRow[config.requireRate[index]].asCString(), items);
+    }
+    else
+    {
+        items.append(new QStandardItem("0"));
+        items.append(new QStandardItem("0"));
+    }
 
     return items;
 }

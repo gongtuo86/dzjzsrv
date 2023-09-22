@@ -63,10 +63,6 @@ bool DZJZ_FileParser::parseBlock(QTextStream &stream, const QString &blockName)
         {
             // ½âÎöÁÐÃû
             columnNames = parseColumnNames(line);
-            // for (const QString &columnName : columnNames)
-            // {
-            //     blockData["columns"].append(columnName.toLocal8Bit().data());
-            // }
         }
         else if (line.startsWith("//"))
         {
@@ -79,7 +75,6 @@ bool DZJZ_FileParser::parseBlock(QTextStream &stream, const QString &blockName)
         }
         else if (line.startsWith("</"))
         {
-            // blockData["data"] = blockRows;
             m_root[blockName.toLocal8Bit().data()] = blockRows;
             return true;
         }
@@ -95,7 +90,7 @@ bool DZJZ_FileParser::parseBlock(QTextStream &stream, const QString &blockName)
  */
 QStringList DZJZ_FileParser::parseColumnNames(const QString &line)
 {
-    return line.mid(1).split(QRegExp("\\s+"), QString::SkipEmptyParts);
+    return line.mid(1).trimmed().split(QRegExp("\\s+"));
 }
 
 /**
@@ -122,11 +117,18 @@ QString DZJZ_FileParser::toJsonString() const
  */
 dfJson::Value DZJZ_FileParser::parseData(const QString &line, const QStringList &columnNames)
 {
-    QStringList dataValues = line.mid(1).split(QRegExp("\\s+"), QString::SkipEmptyParts);
+    QStringList dataValues = line.mid(1).trimmed().split(QRegExp("\\s+"));
     dfJson::Value dataRow;
-    for (int i = 0; i < columnNames.size() && i < dataValues.size(); ++i)
+    for (int i = 0; i < columnNames.size(); ++i)
     {
-        dataRow[columnNames[i].toLocal8Bit().data()] = dataValues[i].toLocal8Bit().data();
+        if (i < dataValues.size())
+        {
+            dataRow[columnNames[i].toLocal8Bit().data()] = dataValues[i].toLocal8Bit().data();
+        }
+        else
+        {
+            dataRow[columnNames[i].toLocal8Bit().data()] = "0";
+        }
     }
     return dataRow;
 }

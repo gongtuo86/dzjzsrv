@@ -37,10 +37,10 @@ public:
 
                 startTime = QDateTime::currentDateTime();
 
-                DZJZ_FileGenerator::DZJZ_GenRoundsFile(startTime);
-                DZJZ_FileGenerator::DZJZ_GenDevicesFile(startTime);
-                DZJZ_FileGenerator::DZJZ_GenLineFile(startTime);
-                DZJZ_FileGenerator::DZJZ_GenActFile(startTime, s_nDzjzUploadTime);
+                DZJZ_FileGenerator::gentInstance().DZJZ_GenRoundsFile(startTime);
+                DZJZ_FileGenerator::gentInstance().DZJZ_GenDevicesFile(startTime);
+                DZJZ_FileGenerator::gentInstance().DZJZ_GenLineFile(startTime);
+                DZJZ_FileGenerator::gentInstance().DZJZ_GenActFile(startTime, s_nDzjzUploadTime);
             }
 
             DFLOG_INFO("[DZJZ_Inspect] Sleeping for 1 seconds.");

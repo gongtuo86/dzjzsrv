@@ -28,19 +28,26 @@ void DZJZ_Section::Write(QTextStream &out) const
     out << "</" << m_sectionName << ">\n";
 }
 
-const QMap<int, QString> DZJZ_FileGenerator::m_funcTypeMap = getDMConfig("低周减载轮次功能类型");
-
-const QMap<QString, QString> DZJZ_FileGenerator::m_subMap = getSubMap();
-
-const QMap<int, QString> DZJZ_FileGenerator::m_loadTypeMap = getDMConfig("低周减载负荷类型");
-
-const QMap<int, QString> DZJZ_FileGenerator::m_strapTypeMap = getDMConfig("低周减载投退计划类型");
-
-const QMap<int, QString> DZJZ_FileGenerator::m_deviceTypeMap = getDMConfig("低周减载装置类型");
-
-DZJZ_FileGenerator::DZJZ_FileGenerator(const QString &fileName, const QString &type, const QString &datetime)
-    : m_fileName(fileName), m_type(type), m_datetime(datetime)
+DZJZ_FileGenerator::DZJZ_FileGenerator()
 {
+    m_funcTypeMap = getDMConfig("低周减载轮次功能类型");
+    m_subMap = getSubMap();
+    m_loadTypeMap = getDMConfig("低周减载负荷类型");
+    m_strapTypeMap = getDMConfig("低周减载投退计划类型");
+    m_deviceTypeMap = getDMConfig("低周减载装置类型");
+}
+
+DZJZ_FileGenerator &DZJZ_FileGenerator::gentInstance()
+{
+    static DZJZ_FileGenerator instance;
+    return instance;
+}
+
+void DZJZ_FileGenerator::SetPara(const QString &fileName, const QString &type, const QString &datetime)
+{
+    m_fileName = fileName;
+    m_type = type;
+    m_datetime = datetime;
 }
 
 bool DZJZ_FileGenerator::Generate(const QList<DZJZ_Section> &sections)
@@ -98,10 +105,75 @@ int DZJZ_FileGenerator::getRoundBaseTypeNum(int roundType)
         return roundType - 6;
 }
 
+QMap<QString, QString> DZJZ_FileGenerator::getSubMap()
+{
+    typedef struct
+    {
+        char name[SUBSTATION_LEN];
+        char desc[DESCRIBE_LEN];
+    } SubDto;
+
+    QString query = QString::fromAscii("select 编号,名称 from xopensdb.dbo.厂站参数表");
+
+    QMap<QString, QString> map;
+    FUNC_STR func;
+    SubDto *pBuf = nullptr;
+    memset(&func, 0, sizeof(FUNC_STR));
+    func.func = SELECT_ISQL_RESULTS;
+    func.serverno = SERVER_DEFAULT;
+    snprintf(func.isql, sizeof(func.isql) - 1, "%s", query.toAscii().data());
+    dbfselectisqlresults(&func, nullptr, (void **)&pBuf);
+    for (int i = 0; i < func.ret_roxnum; i++)
+    {
+        map[pBuf[i].name] = QString::fromAscii(pBuf[i].desc);
+    }
+
+    if (pBuf != nullptr)
+    {
+        free(pBuf);
+        pBuf = nullptr;
+    }
+
+    return map;
+}
+
+QMap<int, QString> DZJZ_FileGenerator::getDMConfig(const QString &strType)
+{
+    typedef struct
+    {
+        int id;
+        char name[40];
+    } DMDto;
+
+    QString query = QString::fromAscii("select 数值,项目 from xopensdb.dbo.DM配置表 where 配置类型='%1'")
+                        .arg(strType);
+
+    QMap<int, QString> map;
+    FUNC_STR func;
+    DMDto *pBuf = nullptr;
+    memset(&func, 0, sizeof(FUNC_STR));
+    func.func = SELECT_ISQL_RESULTS;
+    func.serverno = SERVER_DEFAULT;
+    snprintf(func.isql, sizeof(func.isql) - 1, "%s", query.toAscii().data());
+    dbfselectisqlresults(&func, nullptr, (void **)&pBuf);
+    for (int i = 0; i < func.ret_roxnum; i++)
+    {
+        map[pBuf[i].id] = QString::fromAscii(pBuf[i].name);
+    }
+
+    if (pBuf != nullptr)
+    {
+        free(pBuf);
+        pBuf = nullptr;
+    }
+
+    return map;
+}
+
 bool DZJZ_FileGenerator::DZJZ_GenRoundsFile(const QDateTime &qDateTime)
 {
     QString fileName = QString::fromLocal8Bit("changxing_ufvls_rounds_%1.CIME")
-            .arg(qDateTime.toString("yyyyMMddhhmmss"));
+                           .arg(qDateTime.toString("yyyyMMddhhmmss"));
 
     QString strDateTime = qDateTime.toString("yyyyMMddhhmmss");
 
@@ -155,9 +227,9 @@ bool DZJZ_FileGenerator::DZJZ_GenRoundsFile(const QDateTime &qDateTime)
     }
     DZJZ_Section section(QString::fromLocal8Bit("各轮次减载结果::地区电网"), headerList, descsList, items);
 
-    DZJZ_FileGenerator fileGen(fileName, "ufvls_rounds", strDateTime);
     QList<DZJZ_Section> sections = {section};
-    fileGen.Generate(sections);
+    SetPara(fileName, "ufvls_rounds", strDateTime);
+    Generate(sections);
 }
 
 /**
@@ -171,7 +243,7 @@ bool DZJZ_FileGenerator::DZJZ_GenDevicesFile(const QDateTime &qDateTime)
 {
     // 定义文件名
     QString fileName = QString::fromLocal8Bit("changxing_ufvls_dev_%1.CIME")
-            .arg(qDateTime.toString("yyyyMMddhhmmss"));
+                           .arg(qDateTime.toString("yyyyMMddhhmmss"));
     QString strDateTime = qDateTime.toString("yyyyMMddhhmmss");
 
     // 定义设备部分的头部和描述
@@ -227,9 +299,10 @@ bool DZJZ_FileGenerator::DZJZ_GenDevicesFile(const QDateTime &qDateTime)
 
     DZJZ_Section section(QString::fromLocal8Bit("设备::地区电网"), headerList, descsList, items);
 
-    DZJZ_FileGenerator fileGen(fileName, "ufvls_dev", strDateTime);
     QList<DZJZ_Section> sections = {section};
-    fileGen.Generate(sections);
+    SetPara(fileName, "ufvls_dev", strDateTime);
+    Generate(sections);
+
     return true;
 }
 
@@ -243,7 +316,7 @@ bool DZJZ_FileGenerator::DZJZ_GenDevicesFile(const QDateTime &qDateTime)
 bool DZJZ_FileGenerator::DZJZ_GenLineFile(const QDateTime &qDateTime)
 {
     QString fileName = QString::fromLocal8Bit("changxing_ufvls_line_%1.CIME")
-            .arg(qDateTime.toString("yyyyMMddhhmmss"));
+                           .arg(qDateTime.toString("yyyyMMddhhmmss"));
 
     QString strDateTime = qDateTime.toString("yyyyMMddhhmmss");
 
@@ -299,9 +372,10 @@ bool DZJZ_FileGenerator::DZJZ_GenLineFile(const QDateTime &qDateTime)
 
     DZJZ_Section section(QString::fromLocal8Bit("线路::地区电网"), headerList, descsList, items);
 
-    DZJZ_FileGenerator fileGen(fileName, "ufvls_line", strDateTime);
     QList<DZJZ_Section> sections = {section};
-    fileGen.Generate(sections);
+    SetPara(fileName, "ufvls_line", strDateTime);
+    Generate(sections);
+
     return true; // 返回true表示成功
 }
 
@@ -316,7 +390,7 @@ bool DZJZ_FileGenerator::DZJZ_GenLineFile(const QDateTime &qDateTime)
 bool DZJZ_FileGenerator::DZJZ_GenActFile(const QDateTime &qDateTime, int nCycle)
 {
     QString fileName = QString::fromLocal8Bit("changxing_ufvls_act_%1.CIME")
-            .arg(qDateTime.toString("yyyyMMddhhmmss"));
+                           .arg(qDateTime.toString("yyyyMMddhhmmss"));
 
     QString strDateTime = qDateTime.toString("yyyyMMddhhmmss");
 
@@ -348,9 +422,9 @@ bool DZJZ_FileGenerator::DZJZ_GenActFile(const QDateTime &qDateTime, int nCycle)
     quint32 endTimeStamp = qDateTime.toTime_t();
     quint32 startTimeStamp = QDateTime(qDateTime.addSecs(-nCycle)).toTime_t();
     QString sSql = QString(
-                "select * from xopenshdb.dbo.低周减载轮次项动作表 where 时间>=%1 and 时间<=%2")
-            .arg(startTimeStamp)
-            .arg(endTimeStamp);
+                       "select * from xopenshdb.dbo.低周减载轮次项动作表 where 时间>=%1 and 时间<=%2")
+                       .arg(startTimeStamp)
+                       .arg(endTimeStamp);
     snprintf(func.isql, sizeof(func.isql) - 1, "%s", sSql.toLocal8Bit().data());
     dbfselectisqlresults(&func, nullptr, (void **)&pBuf);
     for (int i = 0; i < func.ret_roxnum; i++)
@@ -383,8 +457,9 @@ bool DZJZ_FileGenerator::DZJZ_GenActFile(const QDateTime &qDateTime, int nCycle)
 
     DZJZ_Section section(QString::fromLocal8Bit("动作告警::地区电网"), headerList, descsList, items);
 
-    DZJZ_FileGenerator fileGen(fileName, "ufvls_act", strDateTime);
     QList<DZJZ_Section> sections = {section};
-    fileGen.Generate(sections);
+    SetPara(fileName, "ufvls_act", strDateTime);
+    Generate(sections);
+
     return true; // 返回true表示成功
 }
